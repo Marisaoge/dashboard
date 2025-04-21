@@ -134,20 +134,26 @@ function Home() {
           date: '10/15/25', 
           time: '10:30 AM', 
           type: 'Follow-up Appointment', 
+          coach: 'Hannah Wright',
+          duration:'30 mins',
           status: 'scheduled' 
         },
         { 
           id: '2', 
           date: '09/24/23', 
           time: '2:00 PM', 
-          type: 'Initial Consultation', 
+          type: 'Intake Appointment', 
+          coach: 'Hannah Wright',
+          duration:'45 mins',         
           status: 'completed' 
         },
         {
           id: '3',
           date: '08/20/25',
           time: '2:30 PM',
-          type: 'Monthly Check-in',
+          type: 'Follow-up Aoppointment',
+          coach: 'Hannah Wright',
+          duration:'30 mins',
           status: 'upcoming'
         }
       ],
