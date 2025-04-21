@@ -13,7 +13,7 @@ import PasswordProtection from './components/PasswordProtection';
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/dashboard">
       <PasswordProtection>
         <Routes>
           <Route path="/" element={<Layout />}>
