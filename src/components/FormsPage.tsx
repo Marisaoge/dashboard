@@ -156,17 +156,9 @@ const FormsPage: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col w-full">
-
       <main className="flex-1 p-4 lg:p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold flex items-center">
-            <FileText className="mr-2 h-6 w-6" /> Forms
-          </h1>
-        </div>
-
-        {/* Sub Tabs */}
-        <div className="border-b border-gray-200 mb-6">
-          <div className="flex">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-wrap gap-2 border-b border-gray-200">
             <button
               className={`px-6 py-2 text-sm font-medium ${
                 activeSubTab === 'your'
@@ -198,6 +190,10 @@ const FormsPage: React.FC = () => {
               Intake Flows
             </button>
           </div>
+          <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 whitespace-nowrap flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            New Form
+          </button>
         </div>
 
         {/* Search and Filters */}
@@ -243,10 +239,6 @@ const FormsPage: React.FC = () => {
               onClick={() => setActiveFilter('charting')}
             >
               <span>Charting Templates</span>
-            </button>
-            <button className="bg-white border border-gray-300 text-blue-600 px-4 py-2 rounded-lg text-sm flex items-center hover:bg-gray-50">
-              <Plus className="h-4 w-4 mr-1" />
-              <span>Create</span>
             </button>
           </div>
         </div>

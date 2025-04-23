@@ -20,7 +20,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
 
   const menuItems = [
     { icon: Home, label: 'Home', path: '/', notification: 0 },
-    { icon: MessageSquare, label: 'Chat', path: '/chat', notification: 4 },
+    { icon: MessageSquare, label: 'Chat', path: '/chat/mary', notification: 4 },
     { icon: Calendar, label: 'Calendar', path: '/calendar', notification: 0 },
     { icon: Package, label: 'Motiv Kits', path: '/kits', notification: 0 },
     { icon: FileText, label: 'Forms', path: '/forms', notification: 0 },

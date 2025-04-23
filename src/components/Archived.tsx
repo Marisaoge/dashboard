@@ -14,7 +14,11 @@ interface ArchivedPatient {
   tags: string[];
 }
 
-const Archived: React.FC = () => {
+interface ArchivedProps {
+  onPatientClick?: (patientId: string) => void;
+}
+
+const Archived: React.FC<ArchivedProps> = ({ onPatientClick }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const archivedPatients: ArchivedPatient[] = [
@@ -95,7 +99,11 @@ const Archived: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPatients.map((patient) => (
-                <tr key={patient.id} className="hover:bg-gray-50 cursor-pointer">
+                <tr 
+                  key={patient.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => onPatientClick?.(patient.id)}
+                >
                   <td className="px-4 py-3 text-sm">{patient.name}</td>
                   <td className="px-4 py-3 text-sm">{patient.group}</td>
                   <td className="px-4 py-3 text-sm truncate" title={patient.coach}>{patient.coach}</td>

@@ -14,11 +14,11 @@ import PasswordProtection from './components/PasswordProtection';
 function App() {
   return (
     <BrowserRouter basename="/dashboard">
-      <PasswordProtection>
+      <PasswordProtection password="Motiv1234!">
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
-            <Route path="chat" element={<ChatPage />} />
+            <Route path="chat/:patientId" element={<ChatPage />} />
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="kits" element={<KitsPage />} />
             <Route path="forms" element={<FormsPage />} />

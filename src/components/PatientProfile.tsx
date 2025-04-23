@@ -5,6 +5,8 @@ import GoalProgress from './GoalProgress';
 import Education from './Education';
 import ClinicalCarePlan from './ClinicalCarePlan';
 import AppointmentDetails from './AppointmentDetails';
+import ScheduleAppointment from './ScheduleAppointment';
+import TagManagement from './TagManagement';
 import { 
   ArrowLeft, 
   Phone, 
@@ -18,7 +20,7 @@ import {
   Clock, 
   Package, 
   User, 
-  Edit, 
+  Edit2, 
   MoreHorizontal,
   MoreVertical,
   ChevronDown, 
@@ -33,8 +35,10 @@ import {
   X,
   Calendar,
   Check,
-  Edit2
+  Edit
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import Metrics from './Metrics';
 
 interface CareTeamOptions {
   providers: string[];
@@ -54,6 +58,11 @@ interface Goal {
     author: string;
     content: string;
   }[];
+}
+
+interface Tag {
+  name: string;
+  priority: 'high' | 'medium' | 'low';
 }
 
 interface PatientProfileProps {
@@ -76,9 +85,10 @@ interface PatientProfileProps {
     totalPCM: number;
     totalBHI: number;
     totalBP: number;
-    tags: string[];
+    tags: Tag[];
     healthieId: string;
     mrn: string;
+    status: 'Active' | 'Archived';
     medicalHistory?: {
       conditions: string[];
       medications: {
@@ -127,15 +137,26 @@ interface PatientProfileProps {
       status: 'pending' | 'completed' | 'overdue';
       assignedTo: string;
     }[];
-    goals?: Goal[];
-    goalprogress?: any;
-    education?: any;
-    assessments?: any;
+    goals?: {
+      id: string;
+      name: string;
+      status: 'in-progress' | 'completed';
+      progress: number;
+      type: 'PCM' | 'RPM' | 'BHI';
+      notes: {
+        id: string;
+        date: string;
+        author: string;
+        content: string;
+        type: 'clinical' | 'general';
+      }[];
+    }[];
   };
   onBack: () => void;
+  onStatusChange?: (patientId: string) => void;
 }
 
-const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
+const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack, onStatusChange }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'vitals' | 'care-plan' | 'goal-progress' | 'assessments' | 'education'>('overview');
   const [editingGroup, setEditingGroup] = useState(false);
   const [editingDateStarted, setEditingDateStarted] = useState(false);
@@ -174,6 +195,12 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
   });
   const [editingMedications, setEditingMedications] = useState(false);
   const [editingAllergies, setEditingAllergies] = useState(false);
+  const [showScheduleAppointment, setShowScheduleAppointment] = useState(false);
+  const [showTagManagement, setShowTagManagement] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [patientStatus, setPatientStatus] = useState<'Active' | 'Archived'>(patient.status || 'Active');
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const availableGroups = [
     'Active Bi-Weekly',
     'Monthly Check-in',
@@ -181,6 +208,8 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
     'On Hold',
     'Graduated'
   ];
+  const [editingMRN, setEditingMRN] = useState(false);
+  const [editedMRN, setEditedMRN] = useState(patient.mrn);
 
   const careTeamOptions: CareTeamOptions = {
     providers: [
@@ -215,6 +244,9 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
     function handleClickOutside(event: MouseEvent) {
       if (monthPickerRef.current && !monthPickerRef.current.contains(event.target as Node)) {
         setShowMonthPicker(false);
+      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
       }
     }
 
@@ -289,8 +321,52 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
   };
 
   const handleScheduleClick = () => {
-    console.log('Schedule appointment clicked');
-    // Add your scheduling logic here
+    setShowScheduleAppointment(true);
+  };
+
+  const getTagColor = (priority: 'high' | 'medium' | 'low') => {
+    switch (priority) {
+      case 'high':
+        return 'bg-red-50 text-red-700 border border-red-200';
+      case 'medium':
+        return 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+      case 'low':
+        return 'bg-green-50 text-green-700 border border-green-200';
+      default:
+        return 'bg-gray-50 text-gray-600 border border-gray-200';
+    }
+  };
+
+  const handleTagSave = (tagData: Tag) => {
+    if (selectedTag) {
+      // Edit existing tag
+      const tagIndex = patient.tags.findIndex(tag => tag.name === selectedTag.name);
+      if (tagIndex !== -1) {
+        const newTags = [...patient.tags];
+        newTags[tagIndex] = tagData;
+        patient.tags = newTags;
+      }
+    } else {
+      // Add new tag
+      if (!patient.tags.some(tag => tag.name === tagData.name)) {
+        patient.tags.push(tagData);
+      }
+    }
+    setSelectedTag(null);
+    setShowTagManagement(false);
+  };
+
+  const handleTagDelete = () => {
+    if (selectedTag) {
+      const tagIndex = patient.tags.findIndex(tag => tag.name === selectedTag.name);
+      if (tagIndex !== -1) {
+        const newTags = [...patient.tags];
+        newTags.splice(tagIndex, 1);
+        patient.tags = newTags;
+      }
+    }
+    setSelectedTag(null);
+    setShowTagManagement(false);
   };
 
   const renderCareTeamField = (
@@ -338,7 +414,7 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
               onClick={() => handleCareTeamEdit(field)}
               className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600"
             >
-              <Edit className="h-4 w-4" />
+              <Edit2 className="h-4 w-4" />
             </button>
           </div>
         )}
@@ -392,7 +468,7 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                 onClick={() => handleEditClick(field)}
                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600"
               >
-                <Edit className="h-4 w-4" />
+                <Edit2 className="h-4 w-4" />
               </button>
             </div>
           )}
@@ -449,12 +525,26 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
     };
   };
 
+  // Ensure tags is initialized as an empty array if undefined
+  const tags = patient.tags || [];
+
+  const handleStatusChange = () => {
+    if (onStatusChange) {
+      onStatusChange(patient.id);
+      setShowDropdown(false);
+    }
+  };
+
+  useEffect(() => {
+    setPatientStatus(patient.status);
+  }, [patient.status]);
+
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
-      <header className="80 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
+      <header className="py-4 px-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center flex-1">
             <button 
               onClick={onBack}
               className="mr-4 p-2 hover:bg-gray-100 rounded-full"
@@ -462,38 +552,141 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
               <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-2">
                 <h1 className="text-xl font-bold">{patient.name}</h1>
-                {patient.tags.includes('at high risk') && (
-                  <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full flex items-center">
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    High Risk
-                  </span>
-                )}
-                {patient.tags.includes('out of state') && (
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                    Out of State
-                  </span>
-                )}
+                <span className="text-gray-500">• {patient.age} years old • {patient.gender} • {patientStatus}</span>
+                <Link 
+                  to={`/chat/${patient.id}`}
+                  className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                </Link>
+                <div className="relative" ref={dropdownRef}>
+          <button 
+                    className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full"
+                    onClick={() => setShowDropdown(!showDropdown)}
+                  >
+                    <MoreHorizontal className="h-5 w-5" />
+          </button>
+                  {showDropdown && (
+                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+          <button 
+                        onClick={handleStatusChange}
+                        className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50"
+                      >
+                        {patientStatus === 'Active' ? 'Archive Patient' : 'Unarchive Patient'}
+          </button>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-gray-600">{patient.age} years old • {patient.gender}</p>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {patient.tags.map((tag, index) => (
+                    <span 
+                      key={index} 
+                      className={`px-2 py-0.5 text-xs rounded-full ${
+                        tag.priority === 'high' ? 'bg-red-100 text-red-800' :
+                        tag.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+          <button 
+                    onClick={() => setShowTagManagement(true)}
+                    className="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                  >
+                    + Add Tag
+          </button>
+                </div>
+              )}
+            </div>
+        </div>
+
+        <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4 px-4 py-2 border border-gray-200 rounded-lg bg-white">
+              <div className="text-sm text-blue-600 font-medium relative border-r border-gray-200 pr-4" ref={monthPickerRef}>
+              <button
+                onClick={() => setShowMonthPicker(!showMonthPicker)}
+                className="flex items-center space-x-1 hover:text-blue-700"
+              >
+                <span>{months[selectedMonth.getMonth()].substring(0, 3)}</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
+
+              {showMonthPicker && (
+                  <div className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 min-w-[280px]">
+                  <div className="grid grid-cols-3 gap-1 mb-4">
+                    {months.map((month, index) => (
+                      <button
+                        key={month}
+                        onClick={() => handleMonthChange(index, selectedMonth.getFullYear())}
+                        className={`px-2 py-1 text-sm rounded transition-colors ${
+                          index === selectedMonth.getMonth() && selectedMonth.getFullYear() === selectedMonth.getFullYear()
+                            ? 'bg-blue-600 text-white'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        {month.substring(0, 3)}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-center gap-2 border-t pt-2">
+                    {years.map(year => (
+                      <button
+                        key={year}
+                        onClick={() => handleMonthChange(selectedMonth.getMonth(), year)}
+                        className={`px-3 py-1 text-sm rounded transition-colors ${
+                          year === selectedMonth.getFullYear()
+                            ? 'bg-blue-600 text-white'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+              <div className="flex items-center gap-6">
+              <div className="text-center">
+                <div className="text-xl font-bold text-gray-900">
+                  {patient.totalPCM || 0}
+                </div>
+                <div className="text-xs text-gray-500">PCM</div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-xl font-bold text-gray-900">
+                  {patient.totalRPM || 0}
+                </div>
+                <div className="text-xs text-gray-500">RPM</div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-xl font-bold text-gray-900">
+                  {patient.totalBHI || 0}
+                </div>
+                <div className="text-xs text-gray-500">BHI</div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-xl font-bold text-gray-900">
+                  {patient.totalBP || 0}
+                </div>
+                <div className="text-xs text-gray-500">BP</div>
+              </div>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-3">
-            <button className="flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">
-              <MessageSquare className="h-4 w-4 mr-1.5" />
-              Message
-            </button>
-            <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full">
-              <MoreHorizontal className="h-5 w-5" />
-            </button>
           </div>
         </div>
       </header>
 
-      {/* Tabs Bar with Month Selector */}
-      <div className="bg-white border-b border-gray-200 px-6 flex items-center justify-between">
+      {/* Tabs Bar */}
+      <div className="bg-white border-b border-gray-200 px-6">
         {/* Tabs Navigation */}
         <div className="flex space-x-6">
           <button 
@@ -542,87 +735,8 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
             }`}
             onClick={() => setActiveTab('education')}
           >
-            Education
+            Lessons & Exercise
           </button>
-        </div>
-
-        {/* Month Display and Stats */}
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <div className="text-sm text-blue-600 font-medium relative" ref={monthPickerRef}>
-              <button
-                onClick={() => setShowMonthPicker(!showMonthPicker)}
-                className="flex items-center space-x-1 hover:text-blue-700"
-              >
-                <span>{months[selectedMonth.getMonth()].substring(0, 3)}</span>
-                <ChevronDown className="h-4 w-4" />
-              </button>
-
-              {showMonthPicker && (
-                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 min-w-[280px]">
-                  <div className="grid grid-cols-3 gap-1 mb-4">
-                    {months.map((month, index) => (
-                      <button
-                        key={month}
-                        onClick={() => handleMonthChange(index, selectedMonth.getFullYear())}
-                        className={`px-2 py-1 text-sm rounded transition-colors ${
-                          index === selectedMonth.getMonth() && selectedMonth.getFullYear() === selectedMonth.getFullYear()
-                            ? 'bg-blue-600 text-white'
-                            : 'hover:bg-gray-100'
-                        }`}
-                      >
-                        {month.substring(0, 3)}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-center gap-2 border-t pt-2">
-                    {years.map(year => (
-                      <button
-                        key={year}
-                        onClick={() => handleMonthChange(selectedMonth.getMonth(), year)}
-                        className={`px-3 py-1 text-sm rounded transition-colors ${
-                          year === selectedMonth.getFullYear()
-                            ? 'bg-blue-600 text-white'
-                            : 'hover:bg-gray-100'
-                        }`}
-                      >
-                        {year}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-center">
-                <div className="text-xl font-bold text-gray-900">
-                  {patient.totalPCM || 0}
-                </div>
-                <div className="text-xs text-gray-500">PCM</div>
-              </div>
-
-              <div className="text-center">
-                <div className="text-xl font-bold text-gray-900">
-                  {patient.totalRPM || 0}
-                </div>
-                <div className="text-xs text-gray-500">RPM</div>
-              </div>
-
-              <div className="text-center">
-                <div className="text-xl font-bold text-gray-900">
-                  {patient.totalBHI || 0}
-                </div>
-                <div className="text-xs text-gray-500">BHI</div>
-              </div>
-
-              <div className="text-center">
-                <div className="text-xl font-bold text-gray-900">
-                  {patient.totalBP || 0}
-                </div>
-                <div className="text-xs text-gray-500">BP</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -674,32 +788,12 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                               onClick={() => handleEditClick('name')}
                               className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit2 className="h-4 w-4" />
                             </button>
                           </div>
                         )}
                         <p className="text-gray-500">{patient.age} years old • {patient.gender}</p>
                       </div>
-                    </div>
-                    <div className={`text-sm font-medium ${riskColor} flex items-center`}>
-                      {riskLevel === 'high' ? (
-                        <>
-                          <AlertTriangle className="h-4 w-4 mr-1" />
-                          High Risk
-                        </>
-                      ) : riskLevel === 'moderate' ? (
-                        <>
-                          <AlertTriangle className="h-4 w-4 mr-1" />
-                          Moderate Risk
-                        </>
-                      ) : riskLevel === 'low' ? (
-                        <>
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Low Risk
-                        </>
-                      ) : (
-                        'Risk Unknown'
-                      )}
                     </div>
                   </div>
                   
@@ -780,7 +874,7 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                             onClick={() => setEditingGroup(true)}
                             className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100  transition-opacity"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit2 className="h-4 w-4" />
                           </button>
                         </div>
                       )}
@@ -818,20 +912,58 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                             onClick={() => setEditingDateStarted(true)}
                             className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit2 className="h-4 w-4" />
                           </button>
                         </div>
                       )}
                     </div>
                     
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-sm">Healthie ID</span>
-                      <span className="text-sm font-medium">{patient.healthieId}</span>
+                      <span className="text-sm font-medium pr-8">{patient.healthieId}</span>
                     </div>
                     
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center group">
                       <span className="text-sm">MRN Number</span>
-                      <span className="text-sm font-medium">{patient.mrn}</span>
+                      {editingMRN ? (
+                        <div className="flex items-center space-x-2 pr-8">
+                          <input
+                            type="text"
+                            value={editedMRN}
+                            onChange={(e) => setEditedMRN(e.target.value)}
+                            className="text-sm font-medium border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            onClick={() => {
+                              console.log('Saving MRN:', editedMRN);
+                              patient.mrn = editedMRN;
+                              setEditingMRN(false);
+                            }}
+                            className="p-1 text-green-600 hover:text-green-700"
+                          >
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditedMRN(patient.mrn);
+                              setEditingMRN(false);
+                            }}
+                            className="p-1 text-red-600 hover:text-red-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                    </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium pr-2">{patient.mrn}</span>
+                          <button
+                            onClick={() => setEditingMRN(true)}
+                            className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -873,9 +1005,9 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={handleScheduleClick}
-                      className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+                      className="h-10 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium"
                     >
-                      <Plus className="h-4 w-4 mr-1.5" />
+                      <Plus className="h-4 w-4" />
                       Schedule
                     </button>
                     <div className="flex space-x-2">
@@ -1009,22 +1141,6 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                     ) : (
                       <div className="text-gray-500">No recent readings</div>
                     )}
-                    
-                    {patient.vitals?.bloodPressure?.[0] && (
-                      <div className={`text-xs mt-1 ${
-                        patient.vitals.bloodPressure[0].systolic >= 140 || patient.vitals.bloodPressure[0].diastolic >= 90
-                          ? 'text-red-600'
-                          : patient.vitals.bloodPressure[0].systolic >= 130 || patient.vitals.bloodPressure[0].diastolic >= 80
-                            ? 'text-amber-500'
-                            : 'text-green-600'
-                      }`}>
-                        {patient.vitals.bloodPressure[0].systolic >= 140 || patient.vitals.bloodPressure[0].diastolic >= 90
-                          ? 'High'
-                          : patient.vitals.bloodPressure[0].systolic >= 130 || patient.vitals.bloodPressure[0].diastolic >= 80
-                            ? 'Elevated'
-                            : 'Normal'}
-                      </div>
-                    )}
                   </div>
                   
                   <div className="border border-gray-200 rounded-lg p-4">
@@ -1048,22 +1164,6 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                     ) : (
                       <div className="text-gray-500">No recent readings</div>
                     )}
-                    
-                    {patient.vitals?.heartRate?.[0] && (
-                      <div className={`text-xs mt-1 ${
-                        patient.vitals.heartRate[0].value > 100
-                          ? 'text-red-600'
-                          : patient.vitals.heartRate[0].value < 60
-                            ? 'text-amber-500'
-                            : 'text-green-600'
-                      }`}>
-                        {patient.vitals.heartRate[0].value > 100
-                          ? 'Elevated'
-                          : patient.vitals.heartRate[0].value < 60
-                            ? 'Low'
-                            : 'Normal'}
-                      </div>
-                    )}
                   </div>
                   
                   <div className="border border-gray-200 rounded-lg p-4">
@@ -1086,30 +1186,6 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                       </div>
                     ) : (
                       <div className="text-gray-500">No recent readings</div>
-                    )}
-                    
-                    {patient.vitals?.weight?.[1] && patient.vitals?.weight?.[0] && (
-                      <div className={`text-xs mt-1 flex items-center ${
-                        patient.vitals.weight[0].value < patient.vitals.weight[1].value
-                          ? 'text-green-600'
-                          : patient.vitals.weight[0].value > patient.vitals.weight[1].value
-                            ? 'text-red-600'
-                            : 'text-gray-600'
-                      }`}>
-                        {patient.vitals.weight[0].value < patient.vitals.weight[1].value ? (
-                          <>
-                            <TrendingUp className="h-3 w-3 mr-1" />
-                            {Math.abs(patient.vitals.weight[0].value - patient.vitals.weight[1].value)} lbs decrease
-                          </>
-                        ) : patient.vitals.weight[0].value > patient.vitals.weight[1].value ? (
-                          <>
-                            <TrendingUp className="h-3 w-3 mr-1" />
-                            {Math.abs(patient.vitals.weight[0].value - patient.vitals.weight[1].value)} lbs increase
-                          </>
-                        ) : (
-                          'No change'
-                        )}
-                      </div>
                     )}
                   </div>
                 </div>
@@ -1162,7 +1238,7 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                           }}
                           className="text-gray-400 hover:text-gray-600"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit2 className="h-4 w-4" />
                         </button>
                       )
                     )}
@@ -1266,7 +1342,7 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                           }}
                           className="text-gray-400 hover:text-gray-600"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit2 className="h-4 w-4" />
                         </button>
                       )
                     )}
@@ -1397,7 +1473,7 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
                           }}
                           className="text-gray-400 hover:text-gray-600"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit2 className="h-4 w-4" />
                         </button>
                       )
                     )}
@@ -1463,172 +1539,24 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
 
         {activeTab === 'vitals' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="font-medium mb-6">Blood Pressure Trends</h3>
-              
-              <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                <div className="text-center">
-                  <BarChart2 className="h-10 w-10 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">Blood pressure chart visualization would appear here</p>
-                </div>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead>
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Systolic</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diastolic</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                
-                    {patient.vitals?.bloodPressure?.map((reading, index) => (
-                      <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.date}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.systolic} mmHg</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.diastolic} mmHg</td>
-                        <td className="px-6 py-4  whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            reading.systolic >= 140 || reading.diastolic >= 90
-                              ? 'bg-red-100 text-red-800'
-                              : reading.systolic >= 130 || reading.diastolic >= 80
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-green-100 text-green-800'
-                          }`}>
-                            {reading.systolic >= 140 || reading.diastolic >= 90
-                              ? 'High'
-                              : reading.systolic >= 130 || reading.diastolic >= 80
-                                ? 'Elevated'
-                                : 'Normal'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="font-medium mb-6">Heart Rate</h3>
-                
-                <div className="h-48 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                  <div className="text-center">
-                    <PieChart className="h-10 w-10 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">Heart rate chart visualization would appear here</p>
-                  </div>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead>
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {patient.vitals?.heartRate?.map((reading, index) => (
-                        <tr key={index}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.date}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.value} bpm</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              reading.value > 100
-                                ? 'bg-red-100 text-red-800'
-                                : reading.value < 60
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-green-100 text-green-800'
-                            }`}>
-                              {reading.value > 100
-                                ? 'Elevated'
-                                : reading.value < 60
-                                  ? 'Low'
-                                  : 'Normal'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="font-medium mb-6">Weight</h3>
-                
-                <div className="h-48 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                  <div className="text-center">
-                    <TrendingUp className="h-10 w-10 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">Weight trend chart visualization would appear here</p>
-                  </div>
-                </div>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead>
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Change</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {patient.vitals?.weight?.map((reading, index) => {
-                        const prevReading = index < patient.vitals!.weight!.length - 1 ? patient.vitals!.weight![index + 1] : null;
-                        const change = prevReading ? reading.value - prevReading.value : 0;
-                        
-                        return (
-                          <tr key={index}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.date}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{reading.value} lbs</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {prevReading && (
-                                <span className={`px-2 py-1 text-xs rounded-full ${
-                                  change < 0
-                                    ? 'bg-green-100 text-green-800'
-                                    : change > 0
-                                      ? 'bg-red-100 text-red-800'
-                                      : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {change === 0
-                                    ? 'No change'
-                                    : change > 0
-                                      ? `+${change} lbs`
-                                      : `${change} lbs`}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <Metrics patient={undefined} />
           </div>
         )}
 
         {activeTab === 'care-plan' && (
-          <ClinicalCarePlan />
+          <ClinicalCarePlan patient={patient} />
         )}
 
         {activeTab === 'goal-progress' && (
-          <GoalProgress goalprogress={patient.goalprogress} />
+          <GoalProgress patient={patient} />
         )}
 
         {activeTab === 'assessments' && (
-          <Assessments assessments={patient.assessments} />
+          <Assessments patient={patient} />
         )}
 
         {activeTab === 'education' && (
-          <Education education={patient.education} />
+          <Education patient={patient} />
         )}
 
         {showAppointmentDetails && selectedAppointment && (
@@ -1636,6 +1564,29 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack }) => {
             isOpen={showAppointmentDetails}
             onClose={() => setShowAppointmentDetails(false)}
             appointment={selectedAppointment}
+          />
+        )}
+
+        {showScheduleAppointment && (
+          <ScheduleAppointment
+            isOpen={showScheduleAppointment}
+            onClose={() => setShowScheduleAppointment(false)}
+            patientName={patient.name}
+          />
+        )}
+
+        {/* Tag Management Modal */}
+        {showTagManagement && (
+          <TagManagement
+            isOpen={showTagManagement}
+            onClose={() => {
+              setShowTagManagement(false);
+              setSelectedTag(null);
+            }}
+            onSave={handleTagSave}
+            onDelete={selectedTag ? handleTagDelete : undefined}
+            initialData={selectedTag || undefined}
+            mode={selectedTag ? 'edit' : 'add'}
           />
         )}
       </div>

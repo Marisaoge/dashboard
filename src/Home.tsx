@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell, LogOut, Settings, MoreHorizontal, Filter, X, Calendar, ChevronDown, ArrowDownRight, ArrowUpRight, Check } from 'lucide-react';
+import { Search, Bell, LogOut, Settings, MoreHorizontal, Filter, X, Calendar, ChevronDown, ArrowDownRight, ArrowUpRight, Check, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import PatientProfile from './components/PatientProfile';
 import Header from './components/Header';
 import Groups from './components/Groups';
@@ -22,6 +23,101 @@ interface NewPatientForm {
   provider: string;
 }
 
+interface Tag {
+  name: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+interface Note {
+  id: string;
+  date: string;
+  author: string;
+  content: string;
+  type: 'clinical' | 'general';
+}
+
+interface Appointment {
+  id: string;
+  date: string;
+  time: string;
+  type: string;
+  provider: string;
+  coach: string;
+  duration: string;
+  status: 'scheduled' | 'completed' | 'cancelled';
+}
+
+interface Task {
+  id: string;
+  title: string;
+  dueDate: string;
+  status: 'completed' | 'pending' | 'overdue';
+  assignedTo: string;
+}
+
+interface Goal {
+  id: string;
+  name: string;
+  status: 'in-progress' | 'completed';
+  progress: number;
+  type: 'PCM' | 'RPM' | 'BHI';
+  notes: Note[];
+}
+
+interface Patient {
+  id: string;
+  name: string;
+  group: string;
+  dateStarted: string;
+  coach: string;
+  therapist: string;
+  healthieId: string;
+  mrn: string;
+  totalRPM: number;
+  totalPCM: number;
+  totalBHI: number;
+  totalBP: number;
+  bpReadings: number;
+  status: 'Active' | 'Archived';
+  tags: Tag[];
+  email: string;
+  phone: string;
+  address: string;
+  dateOfBirth: string;
+  age: number;
+  gender: string;
+  provider: string;
+  medicalHistory: {
+    conditions: string[];
+    medications: { name: string; dosage: string; frequency: string }[];
+    allergies: string[];
+  };
+  vitals: {
+    bloodPressure: { date: string; systolic: number; diastolic: number }[];
+    weight: { date: string; value: number }[];
+    heartRate: { date: string; value: number }[];
+  };
+  notes: Note[];
+  appointments: Appointment[];
+  tasks: Task[];
+  goals: Goal[];
+}
+
+interface MetricStat {
+  label: string;
+  value: number;
+  goal: number;
+  condition: 'lt' | 'gt' | 'between';
+  threshold?: number;
+  min?: number;
+  max?: number;
+  intakeSlots?: number;
+}
+
+interface StatsCategories {
+  [key: string]: MetricStat[];
+}
+
 function Home() {
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<MetricFilter | null>(null);
@@ -37,35 +133,8 @@ function Home() {
     email: '',
     provider: ''
   });
-  
-  const datePickerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
-        setShowDatePicker(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const years = Array.from({ length: 3 }, (_, i) => 2024 + i);
-
-  const handleDateChange = (month: number, year: number) => {
-    setCurrentDate(new Date(year, month));
-    setShowDatePicker(false);
-  };
-
-  const patients = [
+  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+  const [patients, setPatients] = useState<Patient[]>([
     {
       id: "joe-smith",
       name: 'Joe Smith',
@@ -79,7 +148,12 @@ function Home() {
       totalPCM: 16,
       totalBHI: 35,
       totalBP: 10,
-      tags: ['at high risk', 'out of state'],
+      bpReadings: 10,
+      status: 'Active',
+      tags: [
+        { name: 'High Risk', priority: 'high' },
+        { name: 'Out of State', priority: 'medium' }
+      ],
       email: 'joe.smith@example.com',
       phone: '(555) 123-4567',
       address: '123 Main St, Chicago, IL 60601',
@@ -117,8 +191,8 @@ function Home() {
           id: '1', 
           date: '10/01/23', 
           author: 'Dr. Adam Silver', 
-          content: 'Patient reports feeling better with new medication regimen. Blood pressure still elevated but improving. Encouraged continued adherence to medication schedule and dietary recommendations.', 
-          type: 'clinical' 
+          content: 'Patient reports feeling better with new medication regimen. Blood pressure still elevated but improving. Encouraged continued adherence to medication schedule and dietary recommendations.',
+          type: 'clinical'
         },
         { 
           id: '2', 
@@ -134,93 +208,138 @@ function Home() {
           date: '10/15/25', 
           time: '10:30 AM', 
           type: 'Follow-up Appointment', 
+          provider: 'Dr. Sarah Johnson',
           coach: 'Hannah Wright',
-          duration:'30 mins',
-          status: 'scheduled' 
+          duration: '30 mins',
+          status: 'scheduled'
         },
         { 
           id: '2', 
           date: '09/24/23', 
           time: '2:00 PM', 
           type: 'Intake Appointment', 
+          provider: 'Dr. Sarah Johnson',
           coach: 'Hannah Wright',
-          duration:'45 mins',         
-          status: 'completed' 
+          duration: '45 mins',         
+          status: 'completed'
         },
         {
           id: '3',
           date: '08/20/25',
-          time: '2:30 PM',
-          type: 'Follow-up Aoppointment',
+          time: '2:30 PM', 
+          type: 'Follow-up Appointment',
+          provider: 'Dr. Sarah Johnson',
           coach: 'Hannah Wright',
-          duration:'30 mins',
-          status: 'upcoming'
+          duration: '30 mins',
+          status: 'scheduled'
         }
       ],
       tasks: [
         { 
           id: '1', 
-          title: 'Complete health questionnaire', 
-          dueDate: '10/10/23', 
+          title: 'Complete blood pressure log', 
+          dueDate: '10/15/23', 
           status: 'pending', 
-          assignedTo: 'Joe Smith' 
+          assignedTo: 'Joe Smith'
+        }
+      ],
+      goals: [
+        {
+          id: '1',
+          name: 'Improve Blood Pressure Management',
+          status: 'in-progress',
+          progress: 6,
+          type: 'PCM',
+          notes: [
+            {
+              id: '1',
+              date: '10/01/23',
+              author: 'Dr. Sarah Johnson',
+              content: 'Patient showing good progress with medication adherence. Blood pressure readings are trending downward.',
+              type: 'clinical'
+            },
+            {
+              id: '2',
+              date: '09/25/23',
+              author: 'Hannah Wright',
+              content: 'Patient reported difficulty remembering to take evening medications. Suggested setting phone reminders.',
+              type: 'general'
+            }
+          ]
         },
-        { 
-          id: '2', 
-          title: 'Schedule follow-up blood work', 
-          dueDate: '10/05/23', 
-          status: 'overdue', 
-          assignedTo: 'Cindy Parnell' 
+        {
+          id: '2',
+          name: 'Increase Physical Activity',
+          status: 'in-progress',
+          progress: 4,
+          type: 'RPM',
+          notes: [
+            {
+              id: '1',
+              date: '10/01/23',
+              author: 'Hannah Wright',
+              content: 'Patient started walking 15 minutes daily. Encouraged to gradually increase duration.',
+              type: 'general'
+            }
+          ]
         },
-        { 
-          id: '3', 
-          title: 'Review medication adherence', 
-          dueDate: '09/30/23', 
-          status: 'completed', 
-          assignedTo: 'Alisa Fishman' 
+        {
+          id: '3',
+          name: 'Achieve Healthy Weight Loss',
+          status: 'completed',
+          progress: 8,
+          type: 'RPM',
+          notes: [
+            {
+              id: '1',
+              date: '09/24/23',
+              author: 'Dr. Sarah Johnson',
+              content: 'Patient has lost 5 pounds in the first month. Continuing with current diet and exercise plan.',
+              type: 'clinical'
+            }
+          ]
         }
       ]
     },
     {
       id: "jane-tons",
       name: 'Jane Tons',
-      group: 'Active Bi-Weekly',
+      group: 'Monthly Check-in',
       dateStarted: '10/01/23',
-      coach: 'Cindy Parnell',
-      therapist: 'Alisa Fishman',
-      bpReadings: 22,
-      totalRPM: 15,
-      totalPCM: 75,
+      coach: 'Robert Chen',
+      therapist: 'David Thompson',
+      healthieId: '2123457',
+      mrn: '4569235',
+      totalRPM: 45,
+      totalPCM: 12,
       totalBHI: 10,
       totalBP: 22,
+      bpReadings: 22,
+      status: 'Active',
       tags: [],
       email: 'jane.tons@example.com',
       phone: '(555) 987-6543',
-      address: '456 Oak Ave, Chicago, IL 60607',
-      dateOfBirth: '08/23/1970',
-      age: 53,
+      address: '456 Oak St, Chicago, IL 60601',
+      dateOfBirth: '03/15/1980',
+      age: 43,
       gender: 'Female',
       provider: 'Dr. Michael Chen',
       medicalHistory: {
-        conditions: ['Anxiety', 'Migraines'],
+        conditions: ['Anxiety', 'Insomnia'],
         medications: [
-          { name: 'Sertraline', dosage: '50mg', frequency: 'Once daily' },
-          { name: 'Sumatriptan', dosage: '100mg', frequency: 'As needed for migraines' }
+          { name: 'Sertraline', dosage: '50mg', frequency: 'Once daily' }
         ],
-        allergies: ['Latex']
+        allergies: ['None']
       },
       vitals: {
         bloodPressure: [
-          { date: '10/02/23', systolic: 128, diastolic: 82 },
-          { date: '09/25/23', systolic: 130, diastolic: 84 }
+          { date: '10/01/23', systolic: 128, diastolic: 82 }
         ],
         weight: [
-          { date: '10/02/23', value: 145 },
-          { date: '09/25/23', value: 146 }
+          { date: '10/01/23', value: 145 }
         ],
         heartRate: [
-          { date: '10/02/23', value: 72 },
-          { date: '09/25/23', value: 75 }
+          { date: '10/01/23', value: 72 }
         ]
       },
       notes: [
@@ -228,8 +347,8 @@ function Home() {
           id: '1', 
           date: '10/02/23', 
           author: 'Alisa Fishman', 
-          content: 'Jane reports improved sleep with new relaxation techniques. Still experiencing occasional anxiety at work.', 
-          type: 'general' 
+          content: 'Jane reports improved sleep with new relaxation techniques. Still experiencing occasional anxiety at work.',
+          type: 'general'
         }
       ],
       appointments: [
@@ -237,8 +356,11 @@ function Home() {
           id: '1', 
           date: '10/20/23', 
           time: '1:15 PM', 
-          type: 'Therapy Session', 
-          status: 'scheduled' 
+          type: 'Therapy Session',
+          provider: 'Dr. Michael Chen',
+          coach: 'Robert Chen',
+          duration: '45 mins',
+          status: 'scheduled'
         }
       ],
       tasks: [
@@ -247,11 +369,42 @@ function Home() {
           title: 'Complete anxiety assessment', 
           dueDate: '10/15/23', 
           status: 'pending', 
-          assignedTo: 'Jane Tons' 
+          assignedTo: 'Jane Tons'
         }
       ]
     }
+  ]);
+  
+  const datePickerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        setShowDatePicker(false);
+      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(null);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ];
+
+  const years = Array.from({ length: 3 }, (_, i) => 2024 + i);
+
+  const handleDateChange = (month: number, year: number) => {
+    setCurrentDate(new Date(year, month));
+    setShowDatePicker(false);
+  };
 
   const statsCategories = {
     Active: [
@@ -284,31 +437,56 @@ function Home() {
     }
   };
 
-  const getFilteredPatients = () => {
-    if (!activeFilter) return patients;
-
-    return patients.filter(patient => {
-      const value = activeFilter.category === 'PCM' ? patient.totalPCM :
-                    activeFilter.category === 'RPM' ? patient.totalRPM :
-                    activeFilter.category === 'BHI' ? patient.totalBHI :
-                    patient.bpReadings;
-
-      const stat = statsCategories[activeFilter.category as keyof typeof statsCategories]
-        .find(s => s.label === activeFilter.label);
-
-      if (!stat) return true;
-
-      switch (stat.condition) {
-        case 'lt':
-          return value < stat.threshold;
-        case 'gt':
-          return value > stat.threshold;
-        case 'between':
-          return value >= stat.min && value <= stat.max;
-        default:
-          return true;
-      }
+  const handleStatusChange = (patientId: string) => {
+    setPatients(prevPatients => {
+      return prevPatients.map(patient => {
+        if (patient.id === patientId) {
+          return {
+            ...patient,
+            status: patient.status === 'Active' ? 'Archived' : 'Active'
+          };
+        }
+        return patient;
+      });
     });
+    setDropdownOpen(null);
+  };
+
+  const getFilteredPatients = () => {
+    let filtered = [...patients];
+    
+    if (activeTab === 'active') {
+      filtered = filtered.filter(p => p.status === 'Active');
+    } else if (activeTab === 'archived') {
+      filtered = filtered.filter(p => p.status === 'Archived');
+    }
+    
+    if (activeFilter) {
+      filtered = filtered.filter(p => {
+        const value = activeFilter.category === 'PCM' ? p.totalPCM :
+                     activeFilter.category === 'RPM' ? p.totalRPM :
+                     activeFilter.category === 'BHI' ? p.totalBHI :
+                     activeFilter.category === 'BP' ? p.totalBP : 0;
+
+        const stat = (statsCategories as StatsCategories)[activeFilter.category]
+          ?.find(s => s.label === activeFilter.label) as MetricStat;
+
+        if (!stat) return true;
+
+        switch (stat.condition) {
+          case 'lt':
+            return stat.threshold ? value < stat.threshold : true;
+          case 'gt':
+            return stat.threshold ? value > stat.threshold : true;
+          case 'between':
+            return stat.min && stat.max ? value >= stat.min && value <= stat.max : true;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    return filtered;
   };
 
   const renderMetricCard = (category: string, stats: any[], bgColor: string, textColor: string, extraClasses: string = '') => (
@@ -402,7 +580,11 @@ function Home() {
   const selectedPatientData = patients.find(p => p.id === selectedPatient);
 
   if (selectedPatient && selectedPatientData) {
-    return <PatientProfile patient={selectedPatientData} onBack={handleBackToPatientList} />;
+    return <PatientProfile 
+      patient={selectedPatientData} 
+      onBack={handleBackToPatientList}
+      onStatusChange={handleStatusChange}
+    />;
   }
 
   return (
@@ -455,7 +637,7 @@ function Home() {
             </div>
           </div>
           <button 
-            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full sm:w-auto h-10 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium"
             onClick={() => setShowNewPatientModal(true)}
           >
             + New Patient
@@ -463,7 +645,7 @@ function Home() {
         </div>
 
         {activeTab === 'groups' && <Groups />}
-        {activeTab === 'archived' && <Archived />}
+        {activeTab === 'archived' && <Archived onPatientClick={handlePatientClick} />}
         {activeTab === 'allpatients' && <AllPatients />}
         {activeTab === 'active' && (
           <>
@@ -571,16 +753,44 @@ function Home() {
                         <td className="px-4 py-3 text-sm">
                           <div className="flex flex-wrap gap-1">
                             {patient.tags.map((tag, tagIndex) => (
-                              <span key={tagIndex} className="px-2 py-0.5 text-xs bg-gray-100 rounded-full truncate max-w-[100px]" title={tag}>
-                                {tag}
+                              <span key={tagIndex} className="px-2 py-0.5 text-xs bg-gray-100 rounded-full truncate max-w-[100px]" title={tag.name}>
+                                {tag.name}
                               </span>
                             ))}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-center">
-                          <button className="text-gray-400 hover:text-gray-600">
-                            <MoreHorizontal className="h-5 w-5" />
-                          </button>
+                          <div className="relative flex items-center justify-center gap-2" ref={dropdownRef}>
+                            <Link 
+                              to={`/chat/${patient.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-gray-400 hover:text-blue-600 transition-colors"
+                            >
+                              <MessageCircle className="h-5 w-5" />
+                            </Link>
+                            <button 
+                              className="text-gray-400 hover:text-gray-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDropdownOpen(dropdownOpen === patient.id ? null : patient.id);
+                              }}
+                            >
+                              <MoreHorizontal className="h-5 w-5" />
+                            </button>
+                            {dropdownOpen === patient.id && (
+                              <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStatusChange(patient.id);
+                                  }}
+                                  className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50"
+                                >
+                                  {patient.status === 'Active' ? 'Archive Patient' : 'Unarchive Patient'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

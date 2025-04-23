@@ -236,38 +236,31 @@ const OutreachPage: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col w-full">
-      
-
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel - Conversation list or Template list */}
         <div className="w-96 border-r border-gray-200 bg-white flex flex-col h-full">
-          <div className="p-4 border-b border-gray-200">
-            <h1 className="text-xl font-bold mb-4">Outreach</h1>
-            
-            {/* Tabs */}
-            <div className="border-b border-gray-200">
-              <div className="flex">
-                <button
-                  className={`px-6 py-2 text-sm font-medium ${
-                    activeTab === 'text'
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  onClick={() => setActiveTab('text')}
-                >
-                  Text
-                </button>
-                <button
-                  className={`px-6 py-2 text-sm font-medium ${
-                    activeTab === 'email'
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  onClick={() => setActiveTab('email')}
-                >
-                  Email
-                </button>
-              </div>
+          <div className="border-b border-gray-200">
+            <div className="flex p-4">
+              <button
+                className={`px-6 py-2 text-sm font-medium ${
+                  activeTab === 'text'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => setActiveTab('text')}
+              >
+                Text
+              </button>
+              <button
+                className={`px-6 py-2 text-sm font-medium ${
+                  activeTab === 'email'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => setActiveTab('email')}
+              >
+                Email
+              </button>
             </div>
           </div>
           

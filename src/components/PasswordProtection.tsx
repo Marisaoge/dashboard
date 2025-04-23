@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const CORRECT_PASSWORD = 'Motiv1234!';
+interface PasswordProtectionProps {
+  children: React.ReactNode;
+  password: string;
+}
 
-const PasswordProtection: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [password, setPassword] = useState('');
+const PasswordProtection: React.FC<PasswordProtectionProps> = ({ children, password }) => {
+  const [inputPassword, setInputPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password === CORRECT_PASSWORD) {
+    if (inputPassword === password) {
       localStorage.setItem('isAuthenticated', 'true');
       navigate('/');
     } else {
@@ -45,8 +48,8 @@ const PasswordProtection: React.FC<{ children: React.ReactNode }> = ({ children 
                 required
                 className="appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={inputPassword}
+                onChange={(e) => setInputPassword(e.target.value)}
               />
             </div>
           </div>

@@ -75,7 +75,7 @@ const AddActivity: React.FC<AddActivityProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-medium">Type:</h2>
+                  <h2 className="text-lg font-medium">Activity Type:</h2>
                   <div className="relative">
                     <select
                       name="type"

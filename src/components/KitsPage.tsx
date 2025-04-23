@@ -125,20 +125,9 @@ const KitsPage: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col w-full">
- 
-
       <main className="flex-1 p-4 lg:p-6">
-        <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold flex items-center">
-            <Package className="mr-2 h-6 w-6" /> Motiv Kits
-          </h1>
-          <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 whitespace-nowrap">
-            Order Kit
-          </button>
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="flex flex-wrap gap-2 border-b border-gray-200 w-full">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-wrap gap-2 border-b border-gray-200">
             <button 
               className={`px-4 py-2 ${activeTab === 'current' ? 'text-blue-600 border-b-2 border-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setActiveTab('current')}
@@ -158,6 +147,9 @@ const KitsPage: React.FC = () => {
               Archived
             </button>
           </div>
+          <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 whitespace-nowrap">
+            Order Kit
+          </button>
         </div>
 
         {activeTab === 'current' && (

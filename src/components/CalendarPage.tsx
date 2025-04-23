@@ -61,6 +61,10 @@ const CalendarPage: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState(1); // For day view, default to Monday (1)
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<string>('all');
   const [showNewSlotModal, setShowNewSlotModal] = useState(false);
+  const [showCalendarDropdown, setShowCalendarDropdown] = useState(false);
+  const [showAvailabilityDropdown, setShowAvailabilityDropdown] = useState(false);
+  const [isAllCalendars, setIsAllCalendars] = useState(false);
+  const [isAllAvailability, setIsAllAvailability] = useState(false);
 
   // Mock data for the calendar
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -288,25 +292,87 @@ const CalendarPage: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-gray-50">
 
-
       {/* Calendar Navigation */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex flex-wrap justify-between items-center gap-2">
           <div className="flex space-x-2">
-            <button 
-              className={`px-4 py-2 rounded-md flex items-center space-x-2 ${activeTab === 'calendar' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700'}`}
-              onClick={() => setActiveTab('calendar')}
-            >
-              <CalendarIcon className="h-4 w-4" />
-              <span>Calendar</span>
-            </button>
-            <button 
-              className={`px-4 py-2 rounded-md flex items-center space-x-2 ${activeTab === 'availability' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700'}`}
-              onClick={() => setActiveTab('availability')}
-            >
-              <Clock className="h-4 w-4" />
-              <span>Availability</span>
-            </button>
+            {/* Calendar Button with Dropdown */}
+            <div className="relative">
+              <button 
+                className={`px-4 py-2 rounded-md flex items-center space-x-2 ${activeTab === 'calendar' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700'}`}
+                onClick={() => {
+                  setActiveTab('calendar');
+                  setShowCalendarDropdown(!showCalendarDropdown);
+                }}
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span>{isAllCalendars ? 'All Calendars' : 'My Calendar'}</span>
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </button>
+              {showCalendarDropdown && (
+                <div className="absolute z-50 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200">
+                  <div className="py-1">
+                    <button
+                      className={`w-full px-4 py-2 text-left text-sm ${!isAllCalendars ? 'bg-gray-100' : ''} hover:bg-gray-100`}
+                      onClick={() => {
+                        setIsAllCalendars(false);
+                        setShowCalendarDropdown(false);
+                      }}
+                    >
+                      My Calendar
+                    </button>
+                    <button
+                      className={`w-full px-4 py-2 text-left text-sm ${isAllCalendars ? 'bg-gray-100' : ''} hover:bg-gray-100`}
+                      onClick={() => {
+                        setIsAllCalendars(true);
+                        setShowCalendarDropdown(false);
+                      }}
+                    >
+                      All Calendars
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Availability Button with Dropdown */}
+            <div className="relative">
+              <button 
+                className={`px-4 py-2 rounded-md flex items-center space-x-2 ${activeTab === 'availability' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700'}`}
+                onClick={() => {
+                  setActiveTab('availability');
+                  setShowAvailabilityDropdown(!showAvailabilityDropdown);
+                }}
+              >
+                <Clock className="h-4 w-4" />
+                <span>{isAllAvailability ? 'All Availability' : 'My Availability'}</span>
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </button>
+              {showAvailabilityDropdown && (
+                <div className="absolute z-50 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200" style={{ position: 'absolute', top: '100%', left: '0' }}>
+                  <div className="py-1">
+                    <button
+                      className={`w-full px-4 py-2 text-left text-sm ${!isAllAvailability ? 'bg-gray-100' : ''} hover:bg-gray-100`}
+                      onClick={() => {
+                        setIsAllAvailability(false);
+                        setShowAvailabilityDropdown(false);
+                      }}
+                    >
+                      My Availability
+                    </button>
+                    <button
+                      className={`w-full px-4 py-2 text-left text-sm ${isAllAvailability ? 'bg-gray-100' : ''} hover:bg-gray-100`}
+                      onClick={() => {
+                        setIsAllAvailability(true);
+                        setShowAvailabilityDropdown(false);
+                      }}
+                    >
+                      All Availability
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center space-x-2">
