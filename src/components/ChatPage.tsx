@@ -42,7 +42,8 @@ import {
   Paperclip,
   Mic,
   PlayCircle,
-  Lightbulb
+  Lightbulb,
+  MessageSquarePlus
 } from 'lucide-react';
 
 interface Message {
@@ -54,6 +55,8 @@ interface Message {
   timestamp: string;
   isAutomated?: boolean;
   isLink?: boolean;
+  isDeleted?: boolean;
+  deletedAt?: string;
 }
 
 interface Conversation {
@@ -73,6 +76,13 @@ interface MessageTemplate {
   category: string;
 }
 
+interface Patient {
+  id: string;
+  name: string;
+  dateOfBirth: string;
+  mrn: string;
+}
+
 const ChatPage: React.FC = () => {
   const { patientId } = useParams<{ patientId: string }>();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(patientId || "mary");
@@ -80,12 +90,94 @@ const ChatPage: React.FC = () => {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedStatusOption, setSelectedStatusOption] = useState<string | null>(null);
   const [conversationTypeFilter, setConversationTypeFilter] = useState("all");
   const [patientViewFilter, setPatientViewFilter] = useState("my");
   const [isDraftCollapsed, setIsDraftCollapsed] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [searchPatientQuery, setSearchPatientQuery] = useState('');
   
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const [messages, setMessages] = useState<Record<string, Message[]>>({
+    mary: [
+      {
+        id: '1',
+        sender: 'system',
+        initial: 'RC',
+        name: 'Remote Care',
+        content: 'Welcome to your care program! Your care team will be using this chat to communicate with you throughout your journey.',
+        timestamp: 'Aug 03',
+        isAutomated: true
+      },
+      {
+        id: '2',
+        sender: 'user',
+        initial: 'MO',
+        name: 'Marisa Oge',
+        content: "Hi Mary! I'm Marisa, and I'll be your dedicated care coach. How are you feeling today?",
+        timestamp: '9:30 AM'
+      },
+      {
+        id: '3',
+        sender: 'patient',
+        initial: 'MS',
+        name: 'Mary Smith',
+        content: "Hi Marisa! Thanks for checking in. I'm doing okay, but I've been having some trouble sleeping lately.",
+        timestamp: '9:45 AM'
+      },
+      {
+        id: '4',
+        sender: 'user',
+        initial: 'MO',
+        name: 'Marisa Oge',
+        content: "I'm sorry to hear about your sleep troubles. That can be really frustrating. Can you tell me more about what's been happening? For example, do you have trouble falling asleep, staying asleep, or both?",
+        timestamp: '10:00 AM'
+      },
+      {
+        id: '5',
+        sender: 'patient',
+        initial: 'MS',
+        name: 'Mary Smith',
+        content: "I can fall asleep fine, but I keep waking up around 3 AM and then can't get back to sleep. It's been happening almost every night this week.",
+        timestamp: '10:15 AM'
+      },
+      {
+        id: '6',
+        sender: 'user',
+        initial: 'MO',
+        name: 'Marisa Oge',
+        content: "Thank you for sharing that, Mary. Waking up in the middle of the night can really impact how you feel during the day. I've shared some resources about sleep hygiene in your learning materials. Would you like to discuss some strategies during our next session?",
+        timestamp: '10:30 AM'
+      },
+      {
+        id: '7',
+        sender: 'patient',
+        initial: 'MS',
+        name: 'Mary Smith',
+        content: "Yes, that would be really helpful. I'll take a look at those materials before our next call.",
+        timestamp: '10:45 AM'
+      },
+      {
+        id: '8',
+        sender: 'user',
+        initial: 'MO',
+        name: 'Marisa Oge',
+        content: "Perfect! I've also noticed you've been great with logging your blood pressure readings this week. Keep up the great work! 👏",
+        timestamp: '11:00 AM'
+      },
+      {
+        id: '9',
+        sender: 'patient',
+        initial: 'MS',
+        name: 'Mary Smith',
+        content: "Thanks! I've been trying to make it a regular part of my morning routine.",
+        timestamp: '11:15 AM'
+      }
+    ]
+  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -119,30 +211,6 @@ const ChatPage: React.FC = () => {
     { id: "margo", patientName: "Margo Smithtest2", coachName: "Marisa", initial: "MS", lastMessage: "", time: "May 18" },
     { id: "bonnie", patientName: "Bonnie Test", coachName: "Marisa", initial: "BT", lastMessage: "", time: "May 15" },
   ];
-
-  const messages: Record<string, Message[]> = {
-    mary: [
-      {
-        id: '1',
-        sender: 'system',
-        initial: 'RC',
-        name: 'Remote Care',
-        content: 'hi there',
-        timestamp: 'Aug 03',
-        isAutomated: true
-      },
-      {
-        id: '2',
-        sender: 'system',
-        initial: 'RC',
-        name: 'Remote Care',
-        content: 'https://docs.google.com/...',
-        timestamp: 'Aug 03',
-        isAutomated: true,
-        isLink: true
-      }
-    ]
-  };
 
   const messageTemplates: MessageTemplate[] = [
     {
@@ -201,96 +269,179 @@ const ChatPage: React.FC = () => {
     setActiveMenu(null);
   };
 
+  // Sample patient data - replace with your actual patient data
+  const patients: Patient[] = [
+    { id: '1', name: 'John Smith', dateOfBirth: '1980-05-15', mrn: 'MRN123456' },
+    { id: '2', name: 'Sarah Johnson', dateOfBirth: '1992-08-22', mrn: 'MRN789012' },
+    { id: '3', name: 'Michael Brown', dateOfBirth: '1975-11-30', mrn: 'MRN345678' },
+    // Add more patients as needed
+  ];
+
+  const filteredPatients = patients.filter(patient =>
+    patient.name.toLowerCase().includes(searchPatientQuery.toLowerCase()) ||
+    patient.mrn.toLowerCase().includes(searchPatientQuery.toLowerCase())
+  );
+
+  const handleStartNewChat = (patient: Patient) => {
+    // Add logic to start a new chat with the selected patient
+    setShowNewChatModal(false);
+    setSearchPatientQuery('');
+    // You would typically create a new conversation here
+    // and set it as the selected conversation
+  };
+
+  useEffect(() => {
+    if (showNewChatModal && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showNewChatModal]);
+
+  const handleSendMessage = () => {
+    if (!messageInput.trim() || !selectedConversation) return;
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      sender: 'user',
+      initial: 'MO', // You might want to get this from the logged-in user
+      name: 'Marisa Oge', // You might want to get this from the logged-in user
+      content: messageInput,
+      timestamp: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    };
+
+    setMessages(prevMessages => ({
+      ...prevMessages,
+      [selectedConversation]: [
+        ...(prevMessages[selectedConversation] || []),
+        newMessage
+      ]
+    }));
+
+    setMessageInput('');
+  };
+
+  const handleDeleteMessage = (messageId: string, conversationId: string) => {
+    setMessages(prevMessages => ({
+      ...prevMessages,
+      [conversationId]: prevMessages[conversationId].map(msg => 
+        msg.id === messageId 
+          ? {
+              ...msg,
+              isDeleted: true,
+              deletedAt: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+            }
+          : msg
+      )
+    }));
+  };
+
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden">
       {/* Left panel - Conversation list */}
       <div className="w-72 border-r border-gray-200 bg-white flex flex-col">
-        {/* User dropdown */}
-        <div className="border-b border-gray-200">
-          <div ref={dropdownRef} className="relative">
+        {/* Header buttons row */}
+        <div className="p-4 flex gap-2">
+          <button
+            onClick={() => setShowNewChatModal(true)}
+            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors flex-1"
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+            <span className="text-sm">New Chat</span>
+          </button>
+
+          <div ref={dropdownRef} className="relative flex-1">
             <button 
               onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-              className="w-full p-3 flex items-center justify-between hover:bg-gray-50"
+              className="w-full flex items-center justify-between hover:bg-gray-50 rounded-lg border border-gray-200 px-3 py-2 group transition-colors"
             >
-              <div className="flex items-center">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                  <Filter className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Filter</span>
-                  {!userDropdownOpen && (
-                    <span className="text-xs text-gray-500">
-                      {patientViewFilter === 'my' ? 'My Patients, ' : 'All Patients, '}
-                      {statusFilter !== 'all' ? `${statusFilter}, ` : ''}
-                      {conversationTypeFilter !== 'all' ? conversationTypeFilter : ''}
-                    </span>
-                  )}
-                </div>
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500 group-hover:text-gray-700" />
+                <span className="text-sm text-gray-700 truncate">Filter</span>
               </div>
-              <ChevronDown className={`h-5 w-5 text-blue-600 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
             
             {userDropdownOpen && (
-              <div className="absolute left-0 right-0 bg-white border border-gray-200 shadow-lg z-20">
-                <button className="w-full p-3 flex items-center text-blue-600 hover:bg-gray-50">
-                  <Plus className="h-5 w-5 mr-3" />
-                  <span>New</span>
-                </button>
-                
-                <button className="w-full p-3 flex items-center justify-between bg-gray-100 hover:bg-gray-200">
-                  <div className="flex items-center">
-                    <Activity className="h-5 w-5 mr-3 text-gray-600" />
-                    <span>Active</span>
-                  </div>
-                  <span className="bg-gray-200 px-2 py-0.5 rounded-full text-sm">99+</span>
-                </button>
-                
-                <button className="w-full p-3 flex items-center justify-between hover:bg-gray-50">
-                  <div className="flex items-center">
-                    <Clock className="h-5 w-5 mr-3 text-gray-600" />
-                    <span>Scheduled</span>
-                  </div>
-                  <span className="bg-gray-200 px-2 py-0.5 rounded-full text-sm">0</span>
-                </button>
-                
-                <button className="w-full p-3 flex items-center justify-between hover:bg-gray-50">
-                  <div className="flex items-center">
-                    <Package className="h-5 w-5 mr-3 text-gray-600" />
-                    <span>Archived</span>
-                  </div>
-                  <span className="bg-gray-200 px-2 py-0.5 rounded-full text-sm">0</span>
-                </button>
-                
-                <button className="w-full p-3 flex items-center justify-between hover:bg-gray-50">
-                  <div className="flex items-center">
-                    <X className="h-5 w-5 mr-3 text-gray-600" />
-                    <span>Closed</span>
-                  </div>
-                  <span className="bg-gray-200 px-2 py-0.5 rounded-full text-sm">10</span>
-                </button>
-                
-                <div className="border-t border-gray-200 p-3">
+              <div className="absolute left-full top-0 ml-2 w-72 bg-white border border-gray-200 shadow-lg z-50 rounded-lg">
+                <div className="px-3 py-2 space-y-1">
                   <button 
-                    className="w-full flex items-center justify-between"
+                    className="w-full flex items-center justify-between hover:bg-gray-50 rounded-md px-3 py-2"
+                    onClick={() => {
+                      setSelectedStatusOption('Active');
+                      setUserDropdownOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <Activity className="h-5 w-5 mr-3 text-gray-600" />
+                      <span>Active</span>
+                    </div>
+                    <span className="bg-gray-100 px-2.5 py-0.5 rounded-full text-sm">99+</span>
+                  </button>
+                  
+                  <button 
+                    className="w-full flex items-center justify-between hover:bg-gray-50 rounded-md px-3 py-2"
+                    onClick={() => {
+                      setSelectedStatusOption('Scheduled');
+                      setUserDropdownOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <Clock className="h-5 w-5 mr-3 text-gray-600" />
+                      <span>Scheduled</span>
+                    </div>
+                    <span className="bg-gray-100 px-2.5 py-0.5 rounded-full text-sm">0</span>
+                  </button>
+                  
+                  <button 
+                    className="w-full flex items-center justify-between hover:bg-gray-50 rounded-md px-3 py-2"
+                    onClick={() => {
+                      setSelectedStatusOption('Archived');
+                      setUserDropdownOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <Package className="h-5 w-5 mr-3 text-gray-600" />
+                      <span>Archived</span>
+                    </div>
+                    <span className="bg-gray-100 px-2.5 py-0.5 rounded-full text-sm">0</span>
+                  </button>
+                  
+                  <button 
+                    className="w-full flex items-center justify-between hover:bg-gray-50 rounded-md px-3 py-2"
+                    onClick={() => {
+                      setSelectedStatusOption('Closed');
+                      setUserDropdownOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <X className="h-5 w-5 mr-3 text-gray-600" />
+                      <span>Closed</span>
+                    </div>
+                    <span className="bg-gray-100 px-2.5 py-0.5 rounded-full text-sm">10</span>
+                  </button>
+                </div>
+
+                <div className="border-t border-gray-200 mt-2 p-3">
+                  <button 
+                    className="w-full flex items-center justify-between mb-4"
                     onClick={() => setFiltersExpanded(!filtersExpanded)}
                   >
                     <span className="font-medium">Filters</span>
-                    <Filter className={`h-5 w-5 text-blue-600 transition-transform ${filtersExpanded ? '' : 'rotate-180'}`} />
+                    <Filter className={`h-5 w-5 text-blue-600 transition-transform ${filtersExpanded ? 'rotate-180' : ''}`} />
                   </button>
-                  
+
                   {filtersExpanded && (
-                    <div className="mt-3">
-                      <div className="mb-3">
+                    <div className="space-y-4">
+                      <div>
                         <p className="text-sm font-medium mb-2">Patient View</p>
-                        <div className="flex border border-gray-300 rounded-md overflow-hidden">
+                        <div className="grid grid-cols-2 border border-gray-200 rounded-lg overflow-hidden divide-x divide-gray-200">
                           <button 
-                            className={`flex-1 py-2 text-center text-sm ${patientViewFilter === 'my' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                            className={`py-2 text-sm ${patientViewFilter === 'my' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                             onClick={() => setPatientViewFilter('my')}
                           >
                             My Patients
                           </button>
                           <button 
-                            className={`flex-1 py-2 text-center text-sm ${patientViewFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                            className={`py-2 text-sm ${patientViewFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                             onClick={() => setPatientViewFilter('all')}
                           >
                             All Patients
@@ -298,47 +449,47 @@ const ChatPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="mb-3">
+                      <div>
                         <p className="text-sm font-medium mb-2">Status</p>
-                        <div className="flex border border-gray-300 rounded-md overflow-hidden">
+                        <div className="grid grid-cols-3 border border-gray-200 rounded-lg overflow-hidden divide-x divide-gray-200">
                           <button 
-                            className={`flex-1 py-2 text-center text-sm ${statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                            className={`py-2 text-sm ${statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                             onClick={() => setStatusFilter('all')}
                           >
                             All
                           </button>
                           <button 
-                            className={`flex-1 py-2 text-center text-sm ${statusFilter === 'unread' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                            className={`py-2 text-sm ${statusFilter === 'unread' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                             onClick={() => setStatusFilter('unread')}
                           >
                             Unread
                           </button>
                           <button 
-                            className={`flex-1 py-2 text-center text-sm ${statusFilter === 'read' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                            className={`py-2 text-sm ${statusFilter === 'read' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                             onClick={() => setStatusFilter('read')}
                           >
                             Read
                           </button>
                         </div>
                       </div>
-                      
+
                       <div>
                         <p className="text-sm font-medium mb-2">Conversation Type</p>
-                        <div className="flex border border-gray-300 rounded-md overflow-hidden">
+                        <div className="grid grid-cols-3 border border-gray-200 rounded-lg overflow-hidden divide-x divide-gray-200">
                           <button 
-                            className={`flex-1 py-2 text-center text-sm ${conversationTypeFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                            className={`py-2 text-sm ${conversationTypeFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                             onClick={() => setConversationTypeFilter('all')}
                           >
                             All
                           </button>
                           <button 
-                            className={`flex-1 py-2 text-center text-sm ${conversationTypeFilter === 'individual' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                            className={`py-2 text-sm ${conversationTypeFilter === 'individual' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                             onClick={() => setConversationTypeFilter('individual')}
                           >
                             Individual
                           </button>
                           <button 
-                            className={`flex-1 py-2 text-center text-sm ${conversationTypeFilter === 'community' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                            className={`py-2 text-sm ${conversationTypeFilter === 'community' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                             onClick={() => setConversationTypeFilter('community')}
                           >
                             Community
@@ -353,20 +504,57 @@ const ChatPage: React.FC = () => {
           </div>
         </div>
         
+        {/* Active Filters Display */}
+        <div className="px-4 pb-3 flex flex-wrap gap-2">
+          <div className="inline-flex items-center bg-blue-50 text-blue-700 rounded-full px-2 py-1 text-xs">
+            <span>{patientViewFilter === 'my' ? 'My Patients' : 'All Patients'}</span>
+            {patientViewFilter !== 'my' && (
+              <button 
+                onClick={() => setPatientViewFilter('my')}
+                className="ml-1 hover:text-blue-900"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+          <div className="inline-flex items-center bg-blue-50 text-blue-700 rounded-full px-2 py-1 text-xs">
+            <span>{selectedStatusOption || 'All Status'}</span>
+            {selectedStatusOption && (
+              <button 
+                onClick={() => setSelectedStatusOption(null)}
+                className="ml-1 hover:text-blue-900"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+          <div className="inline-flex items-center bg-blue-50 text-blue-700 rounded-full px-2 py-1 text-xs">
+            <span>{conversationTypeFilter === 'all' ? 'All Conversation Types' : conversationTypeFilter.charAt(0).toUpperCase() + conversationTypeFilter.slice(1)}</span>
+            {conversationTypeFilter !== 'all' && (
+              <button 
+                onClick={() => setConversationTypeFilter('all')}
+                className="ml-1 hover:text-blue-900"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+        
         {/* Search bar */}
-        <div className="p-4 border-b border-gray-200 flex items-center">
-          <div className="relative flex-1">
+        <div className="px-4 pb-4">
+          <div className="relative">
             <input
               type="text"
-              placeholder="Search Conversations..."
-              className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              placeholder="Search conversations..."
+              className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm transition-colors"
             />
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           </div>
         </div>
         
         {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto custom-scrollbar border-t border-gray-100">
           {conversations.map(conversation => (
             <div
               key={conversation.id}
@@ -425,9 +613,9 @@ const ChatPage: React.FC = () => {
       </div>
       
       {/* Middle panel - Chat */}
-      <div className={`flex-1 flex flex-col ${isDraftCollapsed ? 'mr-0' : ''}`}>
+      <div className={`flex-1 flex flex-col ${isDraftCollapsed ? 'mr-0' : ''} h-[calc(100vh-64px)] overflow-hidden`}>
         {/* Chat header */}
-        <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 flex-shrink-0">
+        <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 flex-shrink-0 sticky top-0 z-10">
           <div className="font-medium">
             {selectedConversation && getDisplayName(conversations.find(c => c.id === selectedConversation)!)}
           </div>
@@ -462,27 +650,59 @@ const ChatPage: React.FC = () => {
         </div>
         
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="flex-1 overflow-y-auto bg-gray-50 min-h-0">
           <div className="p-4">
             {selectedConversation && messages[selectedConversation]?.map(message => (
-              <div key={message.id} className="mb-4 flex">
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium mr-2 flex-shrink-0">
-                  {message.initial}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center mb-1">
+              <div key={message.id} className={`mb-4 flex ${message.sender === 'patient' ? 'justify-end' : ''}`}>
+                {message.sender !== 'patient' && (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium mr-2 flex-shrink-0">
+                    {message.initial}
+                  </div>
+                )}
+                <div className={`flex-1 max-w-[80%] ${message.sender === 'patient' ? 'ml-auto' : ''}`}>
+                  <div className={`flex items-center mb-1 ${message.sender === 'patient' ? 'justify-end' : ''}`}>
                     <span className="text-sm font-medium mr-2">{message.name}</span>
                     <span className="text-xs text-gray-500">{message.timestamp}</span>
                   </div>
-                  <div className={`p-3 rounded-lg ${message.isLink ? 'bg-white border border-gray-200' : 'bg-white border border-gray-200'}`}>
-                    {message.content}
+                  <div className={`group relative p-3 rounded-lg ${
+                    message.sender === 'patient' 
+                      ? 'bg-blue-600 text-white' 
+                      : message.sender === 'system'
+                      ? 'bg-gray-100 border border-gray-200'
+                      : 'bg-white border border-gray-200'
+                  }`}>
+                    {message.isDeleted ? (
+                      <div className="italic text-gray-500 text-sm">
+                        Message deleted at {message.deletedAt}
+                      </div>
+                    ) : (
+                      <>
+                        {message.content}
+                        {message.sender === 'user' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteMessage(message.id, selectedConversation!);
+                            }}
+                            className="absolute top-2 right-2 p-1 rounded hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-4 w-4 text-gray-500" />
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
+                {message.sender === 'patient' && (
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium ml-2 flex-shrink-0">
+                    {message.initial}
+                  </div>
+                )}
               </div>
             ))}
             
             {(!selectedConversation || !messages[selectedConversation] || messages[selectedConversation].length === 0) && (
-              <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+              <div className="flex flex-col items-center justify-center h-32 text-gray-500">
                 <p>You haven't sent or received a message yet.</p>
                 <p>Enter a message below and press "Send."</p>
               </div>
@@ -491,66 +711,64 @@ const ChatPage: React.FC = () => {
         </div>
         
         {/* Message input area */}
-        <div className="bg-white border-t border-gray-200">
+        <div className="bg-white border-t border-gray-200 sticky bottom-0 z-10">
           {/* Formatting toolbar */}
-          <div className="flex items-center gap-6 px-6 h-14 border-b border-gray-200">
+          <div className="flex items-center gap-6 px-6 h-12 border-b border-gray-200">
             <button className="hover:bg-gray-100 rounded p-1.5">
-              <Bold className="h-5 w-5 text-gray-700" />
+              <Bold className="h-4 w-4 text-gray-700" />
             </button>
             <button className="hover:bg-gray-100 rounded p-1.5">
-              <Italic className="h-5 w-5 text-gray-700" />
+              <Italic className="h-4 w-4 text-gray-700" />
             </button>
             <button className="hover:bg-gray-100 rounded p-1.5">
-              <Underline className="h-5 w-5 text-gray-700" />
+              <Underline className="h-4 w-4 text-gray-700" />
             </button>
             <button className="hover:bg-gray-100 rounded p-1.5">
-              <List className="h-5 w-5 text-gray-700" />
+              <List className="h-4 w-4 text-gray-700" />
             </button>
             <button className="hover:bg-gray-100 rounded p-1.5">
-              <Link2 className="h-5 w-5 text-gray-700" />
+              <Link2 className="h-4 w-4 text-gray-700" />
             </button>
             <button className="hover:bg-gray-100 rounded p-1.5">
-              <PlayCircle className="h-5 w-5 text-gray-700" />
+              <PlayCircle className="h-4 w-4 text-gray-700" />
             </button>
             <button className="hover:bg-gray-100 rounded p-1.5">
-              <Lightbulb className="h-5 w-5 text-gray-700" />
+              <Lightbulb className="h-4 w-4 text-gray-700" />
             </button>
           </div>
 
           {/* Text area */}
-          <div className="p-6">
+          <div className="p-4">
             <textarea
               placeholder="Enter a message here..."
-              className="w-full h-[250px] px-4 py-3 text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+              className="w-full h-[100px] px-4 py-3 text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
             />
           </div>
 
           {/* Bottom toolbar */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+          <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100">
             {/* Left side - attachment buttons */}
             <div className="flex items-center gap-4">
               <button className="text-blue-600 hover:bg-gray-100 rounded p-1.5">
-                <Image className="h-6 w-6" />
+                <Image className="h-5 w-5" />
               </button>
               <button className="text-blue-600 hover:bg-gray-100 rounded p-1.5">
-                <Film className="h-6 w-6" />
+                <Film className="h-5 w-5" />
               </button>
               <button className="text-blue-600 hover:bg-gray-100 rounded p-1.5">
-                <Paperclip className="h-6 w-6" />
+                <Paperclip className="h-5 w-5" />
               </button>
             </div>
 
             {/* Right side - mic and send */}
             <div className="flex items-center gap-4">
               <button className="text-blue-600 hover:bg-gray-100 rounded p-1.5">
-                <Mic className="h-6 w-6" />
+                <Mic className="h-5 w-5" />
               </button>
               <button
-                onClick={() => {
-                  // Handle sending the message
-                }}
+                onClick={handleSendMessage}
                 className="flex items-center gap-1 px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700"
               >
                 <span className="font-medium">Send</span>
@@ -567,7 +785,7 @@ const ChatPage: React.FC = () => {
           <div className="flex items-center p-4 border-b border-gray-200">
             <button
               onClick={() => setIsDraftCollapsed(!isDraftCollapsed)}
-              className="p-1 hover:bg-gray-100 rounded-full transition-colors mr-2"
+              className="hover:bg-gray-100 rounded-full transition-colors"
             >
               {isDraftCollapsed ? (
                 <ChevronLeft className="h-5 w-5 text-gray-600" />
@@ -576,7 +794,7 @@ const ChatPage: React.FC = () => {
               )}
             </button>
             {!isDraftCollapsed && (
-              <h2 className="font-medium text-lg flex-1">Draft Messages for Mary</h2>
+              <h2 className="font-medium text-lg ml-2">Draft Chats for Mary</h2>
             )}
           </div>
           
@@ -612,6 +830,73 @@ const ChatPage: React.FC = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* New Chat Modal */}
+      {showNewChatModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-[500px] max-h-[600px] flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-lg font-semibold">New Chat</h2>
+              <button
+                onClick={() => {
+                  setShowNewChatModal(false);
+                  setSearchPatientQuery('');
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 border-b border-gray-200">
+              <div className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search patients by name or MRN..."
+                  value={searchPatientQuery}
+                  onChange={(e) => setSearchPatientQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {filteredPatients.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  No patients found
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredPatients.map((patient) => (
+                    <button
+                      key={patient.id}
+                      onClick={() => handleStartNewChat(patient)}
+                      className="w-full p-3 flex items-center justify-between hover:bg-gray-50 rounded-lg group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <span className="text-blue-600 font-medium">
+                            {patient.name.split(' ').map(n => n[0]).join('')}
+                          </span>
+                        </div>
+                        <div className="text-left">
+                          <div className="font-medium">{patient.name}</div>
+                          <div className="text-sm text-gray-500">
+                            DOB: {new Date(patient.dateOfBirth).toLocaleDateString()} • MRN: {patient.mrn}
+                          </div>
+                        </div>
+                      </div>
+                      <MessageSquarePlus className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

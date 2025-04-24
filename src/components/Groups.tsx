@@ -177,23 +177,25 @@ const Groups: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col w-full bg-gray-50">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="relative flex-1 max-w-xs">
-          <input
-            type="text"
-            placeholder="Search groups..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+        <div className="flex items-center gap-4 w-full">
+          <div className="relative flex-1 max-w-xs">
+            <input
+              type="text"
+              placeholder="Search groups..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+          </div>
+          <button
+            onClick={() => setShowNewGroupModal(true)}
+            className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-md flex items-center whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            New Group
+          </button>
         </div>
-        <button
-          onClick={() => setShowNewGroupModal(true)}
-          className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-md flex items-center whitespace-nowrap"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          New Group
-        </button>
       </div>
 
       <div className="bg-white rounded-lg shadow">

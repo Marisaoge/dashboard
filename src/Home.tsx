@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell, LogOut, Settings, MoreHorizontal, Filter, X, Calendar, ChevronDown, ArrowDownRight, ArrowUpRight, Check, MessageCircle } from 'lucide-react';
+import { Search, Bell, LogOut, Settings, MoreHorizontal, Filter, X, Calendar, ChevronDown, ArrowDownRight, ArrowUpRight, Check, MessageCircle, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PatientProfile from './components/PatientProfile';
 import Header from './components/Header';
@@ -125,6 +125,7 @@ function Home() {
   const [currentDate, setCurrentDate] = useState(new Date(2025, 2)); // March 2025
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'allpatients' | 'archived' | 'groups'>('active');
+  const [searchQuery, setSearchQuery] = useState('');
   const [newPatientForm, setNewPatientForm] = useState<NewPatientForm>({
     firstName: '',
     lastName: '',
@@ -457,6 +458,15 @@ function Home() {
     
     if (activeTab === 'active') {
       filtered = filtered.filter(p => p.status === 'Active');
+      
+      if (searchQuery) {
+        filtered = filtered.filter(p => 
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.coach.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.therapist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.group.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
     } else if (activeTab === 'archived') {
       filtered = filtered.filter(p => p.status === 'Archived');
     }
@@ -503,7 +513,7 @@ function Home() {
               <div className="text-xs opacity-75 mb-1">{stat.label}</div>
               <button
                 onClick={() => handleMetricClick(category, stat)}
-                className={`w-full text-left ${isActive ? 'bg-white bg-opacity-50 rounded p-2 -m-2' : ''}`}
+                className="w-full text-left"
               >
                 <div className="flex flex-col">
                   <div className="flex items-baseline">
@@ -591,7 +601,7 @@ function Home() {
     <>
       
       <main className="flex-1 p-4 lg:p-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex flex-wrap gap-2 mb-4">
               <button
@@ -636,19 +646,8 @@ function Home() {
               </button>
             </div>
           </div>
-          <button 
-            className="w-full sm:w-auto h-10 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium"
-            onClick={() => setShowNewPatientModal(true)}
-          >
-            + New Patient
-          </button>
-        </div>
 
-        {activeTab === 'groups' && <Groups />}
-        {activeTab === 'archived' && <Archived onPatientClick={handlePatientClick} />}
-        {activeTab === 'allpatients' && <AllPatients />}
-        {activeTab === 'active' && (
-          <>
+          <div className="flex items-center gap-4">
             <div className="relative" ref={datePickerRef}>
               <button
                 onClick={() => setShowDatePicker(!showDatePicker)}
@@ -659,7 +658,7 @@ function Home() {
               </button>
 
               {showDatePicker && (
-                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 min-w-[280px]">
+                <div className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 min-w-[280px]">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 mb-4">
                     {months.map((month, index) => (
                       <button
@@ -693,7 +692,23 @@ function Home() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-6 gap-6 mb-8">
+
+            <button
+              onClick={() => setShowNewPatientModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              <span>New Patient</span>
+            </button>
+          </div>
+        </div>
+
+        {activeTab === 'groups' && <Groups />}
+        {activeTab === 'archived' && <Archived onPatientClick={handlePatientClick} />}
+        {activeTab === 'allpatients' && <AllPatients />}
+        {activeTab === 'active' && (
+          <>
+            <div className="grid grid-cols-6 gap-6 mb-6">
               <div className="col-span-1">
                 {renderMetricCard('Active', statsCategories.Active, 'bg-gray-50 border-gray-500', 'text-gray-900')}
               </div>
@@ -709,9 +724,9 @@ function Home() {
             </div>
 
             {activeFilter && (
-              <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-lg mb-6">
-                <span className="text-sm text-blue-700">
-                  Filtered by {activeFilter.category}: {activeFilter.label}
+              <div className="inline-flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full mb-6 text-sm text-blue-700">
+                <span>
+                  {activeFilter.category}: {activeFilter.label}
                 </span>
                 <button
                   onClick={() => setActiveFilter(null)}
@@ -719,6 +734,21 @@ function Home() {
                 >
                   <X className="h-4 w-4" />
                 </button>
+              </div>
+            )}
+
+            {activeTab === 'active' && (
+              <div className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search my patients..."
+                    className="w-[300px] pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                </div>
               </div>
             )}
 
