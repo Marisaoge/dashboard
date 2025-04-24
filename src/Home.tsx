@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell, LogOut, Settings, MoreHorizontal, Filter, X, Calendar, ChevronDown, ArrowDownRight, ArrowUpRight, Check, MessageCircle, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, Bell, LogOut, Settings, MoreHorizontal, Filter, X, Calendar, ChevronDown, ArrowDownRight, ArrowUpRight, Check, MessageCircle, Plus, MessageSquare } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import PatientProfile from './components/PatientProfile';
 import Header from './components/Header';
 import Groups from './components/Groups';
@@ -372,12 +372,47 @@ function Home() {
           status: 'pending', 
           assignedTo: 'Jane Tons'
         }
+      ],
+      goals: [
+        {
+          id: '1',
+          name: 'Medication adherence',
+          status: 'in-progress',
+          progress: 80,
+          type: 'PCM',
+          notes: [
+            {
+              id: '1',
+              date: '10/01/23',
+              author: 'Dr. Sarah Johnson',
+              content: 'Patient is taking medications as prescribed.',
+              type: 'clinical'
+            }
+          ]
+        },
+        {
+          id: '2',
+          name: 'Regular exercise',
+          status: 'in-progress',
+          progress: 70,
+          type: 'RPM',
+          notes: [
+            {
+              id: '1',
+              date: '10/01/23',
+              author: 'Hannah Wright',
+              content: 'Patient has been attending weekly exercise classes.',
+              type: 'general'
+            }
+          ]
+        }
       ]
     }
   ]);
   
   const datePickerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -587,6 +622,10 @@ function Home() {
     });
   };
 
+  const handleChatClick = (patientId: string) => {
+    navigate(`/chat/${patientId}`);
+  };
+
   const selectedPatientData = patients.find(p => p.id === selectedPatient);
 
   if (selectedPatient && selectedPatientData) {
@@ -791,21 +830,23 @@ function Home() {
                         </td>
                         <td className="px-4 py-3 text-sm text-center">
                           <div className="relative flex items-center justify-center gap-2" ref={dropdownRef}>
-                            <Link 
-                              to={`/chat/${patient.id}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-gray-400 hover:text-blue-600 transition-colors"
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleChatClick(patient.id);
+                              }}
+                              className="p-2 hover:bg-gray-100 rounded-full"
                             >
-                              <MessageCircle className="h-5 w-5" />
-                            </Link>
+                              <MessageSquare className="h-4 w-4 text-gray-500" />
+                            </button>
                             <button 
-                              className="text-gray-400 hover:text-gray-600"
+                              className="p-2 hover:bg-gray-100 rounded-full"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setDropdownOpen(dropdownOpen === patient.id ? null : patient.id);
                               }}
                             >
-                              <MoreHorizontal className="h-5 w-5" />
+                              <MoreHorizontal className="h-4 w-4 text-gray-500" />
                             </button>
                             {dropdownOpen === patient.id && (
                               <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">

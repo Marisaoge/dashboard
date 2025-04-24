@@ -45,7 +45,7 @@ const KitsPage: React.FC = () => {
       status: 'Ordered',
       orderDate: '5/4/23',
       group: 'Active Bi-Weekly',
-      cuffSize: 'XL cuff',
+      cuffSize: 'Elera BP Cuff XL',
       organization: 'Northshore',
       orders: 2,
       returns: 2
@@ -53,7 +53,7 @@ const KitsPage: React.FC = () => {
     {
       id: '2',
       patientName: 'Jane Tons',
-      status: 'Not ordered',
+      status: 'Not Ordered',
       organization: 'Northshore'
     }
   ];
@@ -179,13 +179,11 @@ const KitsPage: React.FC = () => {
                           </button>
                         </div>
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group">
-                        <div className="flex items-center gap-1">
-                          <span>Kit Status</span>
-                          <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Filter className="h-3 w-3 text-gray-400 hover:text-gray-600" />
-                          </button>
-                        </div>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Kit Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        BP Cuff
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group">
                         <div className="flex items-center gap-1">
@@ -246,7 +244,12 @@ const KitsPage: React.FC = () => {
                           )}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {kit.group || '-'}
+                          {kit.cuffSize || '-'}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-gray-500">
+                          <div className="max-w-xs truncate" title={kit.group}>
+                            {kit.group || '-'}
+                          </div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                           {kit.cuffSize || '-'}
@@ -411,13 +414,11 @@ const KitsPage: React.FC = () => {
                           </button>
                         </div>
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group">
-                        <div className="flex items-center gap-1">
-                          <span>Kit Status</span>
-                          <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Filter className="h-3 w-3 text-gray-400 hover:text-gray-600" />
-                          </button>
-                        </div>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Kit Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        BP Cuff
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group">
                         <div className="flex items-center gap-1">
@@ -478,7 +479,12 @@ const KitsPage: React.FC = () => {
                           )}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {kit.group || '-'}
+                          {kit.cuffSize || '-'}
+                        </td>
+                        <td className="px-4 py-4 text-sm text-gray-500">
+                          <div className="max-w-xs truncate" title={kit.group}>
+                            {kit.group || '-'}
+                          </div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                           {kit.cuffSize || '-'}

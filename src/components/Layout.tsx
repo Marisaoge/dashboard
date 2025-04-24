@@ -5,7 +5,7 @@ import Header from './Header';
 
 const Layout: React.FC = () => {
   const location = useLocation();
-  const isChatPage = location.pathname === '/chat';
+  const isChatPage = location.pathname.startsWith('/chat');
 
   return (
     <div className="flex min-h-screen bg-gray-50">

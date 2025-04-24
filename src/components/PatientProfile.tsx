@@ -39,6 +39,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Metrics from './Metrics';
+import OrderItemModal from './OrderItemModal';
+import KitDetailsModal from './KitDetailsModal';
 
 interface CareTeamOptions {
   providers: string[];
@@ -210,6 +212,8 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack, onStat
   ];
   const [editingMRN, setEditingMRN] = useState(false);
   const [editedMRN, setEditedMRN] = useState(patient.mrn);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showKitDetailsModal, setShowKitDetailsModal] = useState(false);
 
   const careTeamOptions: CareTeamOptions = {
     providers: [
@@ -844,7 +848,7 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack, onStat
                     <div className="flex justify-between items-center group">
                       <span className="text-sm">Group</span>
                       {editingGroup ? (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 pr-8">
                           <select
                             value={selectedGroup}
                             onChange={(e) => setSelectedGroup(e.target.value)}
@@ -855,24 +859,31 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack, onStat
                             ))}
                           </select>
                           <button
-                            onClick={handleGroupSave}
+                            onClick={() => {
+                              console.log('Saving group:', selectedGroup);
+                              patient.group = selectedGroup;
+                              setEditingGroup(false);
+                            }}
                             className="p-1 text-green-600 hover:text-green-700"
                           >
                             <Check className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => setEditingGroup(false)}
+                            onClick={() => {
+                              setSelectedGroup(patient.group);
+                              setEditingGroup(false);
+                            }}
                             className="p-1 text-red-600 hover:text-red-700"
                           >
                             <X className="h-4 w-4" />
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium">{selectedGroup}</span>
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium pr-2">{patient.group}</span>
                           <button
                             onClick={() => setEditingGroup(true)}
-                            className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100  transition-opacity"
+                            className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
@@ -952,7 +963,7 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack, onStat
                           >
                             <X className="h-4 w-4" />
                           </button>
-                    </div>
+                        </div>
                       ) : (
                         <div className="flex items-center">
                           <span className="text-sm font-medium pr-2">{patient.mrn}</span>
@@ -964,6 +975,36 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack, onStat
                           </button>
                         </div>
                       )}
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Kit Status</span>
+                      {patient.name === 'Joe Smith' ? (
+                        <button
+                          onClick={() => setShowKitDetailsModal(true)}
+                          className="text-sm font-medium pr-8 text-blue-600 hover:text-blue-700"
+                        >
+                          Delivered, 2/3/25
+                        </button>
+                      ) : (
+                        <span className="text-sm font-medium pr-8">Not Ordered</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">BP Cuff</span>
+                      <span className="text-sm font-medium pr-8">
+                        {patient.name === 'Joe Smith' ? 'Elera BP Cuff XL' : 'Not Ordered'}
+                      </span>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-gray-200">
+                      <button 
+                        className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
+                        onClick={() => setShowOrderModal(true)}
+                      >
+                        Order Item
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1589,6 +1630,24 @@ const PatientProfile: React.FC<PatientProfileProps> = ({ patient, onBack, onStat
             mode={selectedTag ? 'edit' : 'add'}
           />
         )}
+
+        {/* Order Item Modal */}
+        <OrderItemModal
+          isOpen={showOrderModal}
+          onClose={() => setShowOrderModal(false)}
+          patient={{
+            name: patient.name,
+            address: patient.address,
+            email: patient.email,
+            phone: patient.phone
+          }}
+        />
+
+        {/* Kit Details Modal */}
+        <KitDetailsModal
+          isOpen={showKitDetailsModal}
+          onClose={() => setShowKitDetailsModal(false)}
+        />
       </div>
     </div>
   );
