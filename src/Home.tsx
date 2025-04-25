@@ -407,6 +407,109 @@ function Home() {
           ]
         }
       ]
+    },
+    {
+      id: "sarah-johnson",
+      name: 'Sarah Johnson',
+      group: 'Monthly Check-in',
+      dateStarted: '10/15/23',
+      coach: 'Robert Chen',
+      therapist: 'David Thompson',
+      healthieId: '2123457',
+      mrn: '4569235',
+      totalRPM: 45,
+      totalPCM: 20,
+      totalBHI: 30,
+      totalBP: 8,
+      bpReadings: 8,
+      status: 'Active',
+      tags: [],
+      email: 'sarah.johnson@example.com',
+      phone: '(555) 234-5678',
+      address: '456 Oak Ave, Boston, MA 02108',
+      dateOfBirth: '08/23/1970',
+      age: 53,
+      gender: 'Female',
+      provider: 'Dr. Michael Chen',
+      medicalHistory: {
+        conditions: ['Anxiety', 'Insomnia'],
+        medications: [
+          { name: 'Sertraline', dosage: '50mg', frequency: 'Once daily' },
+          { name: 'Melatonin', dosage: '5mg', frequency: 'As needed at bedtime' }
+        ],
+        allergies: ['None']
+      },
+      vitals: {
+        bloodPressure: [
+          { date: '10/15/23', systolic: 128, diastolic: 82 },
+          { date: '10/08/23', systolic: 130, diastolic: 84 }
+        ],
+        weight: [
+          { date: '10/15/23', value: 145 },
+          { date: '10/01/23', value: 146 }
+        ],
+        heartRate: [
+          { date: '10/15/23', value: 72 },
+          { date: '10/08/23', value: 75 }
+        ]
+      },
+      notes: [],
+      appointments: [],
+      tasks: [],
+      goals: []
+    },
+    {
+      id: "michael-brown",
+      name: 'Michael Brown',
+      group: 'High Risk',
+      dateStarted: '11/01/23',
+      coach: 'Sarah Wilson',
+      therapist: 'Lisa Anderson',
+      healthieId: '2123458',
+      mrn: '4569236',
+      totalRPM: 55,
+      totalPCM: 25,
+      totalBHI: 40,
+      totalBP: 12,
+      bpReadings: 12,
+      status: 'Active',
+      tags: [
+        { name: 'High Risk', priority: 'high' },
+        { name: 'New Patient', priority: 'medium' }
+      ],
+      email: 'michael.brown@example.com',
+      phone: '(555) 345-6789',
+      address: '789 Pine St, Seattle, WA 98101',
+      dateOfBirth: '03/15/1968',
+      age: 55,
+      gender: 'Male',
+      provider: 'Dr. Emily White',
+      medicalHistory: {
+        conditions: ['Type 2 Diabetes', 'Obesity', 'Sleep Apnea'],
+        medications: [
+          { name: 'Metformin', dosage: '1000mg', frequency: 'Twice daily' },
+          { name: 'Glipizide', dosage: '5mg', frequency: 'Once daily' }
+        ],
+        allergies: ['Sulfa drugs']
+      },
+      vitals: {
+        bloodPressure: [
+          { date: '11/01/23', systolic: 138, diastolic: 88 },
+          { date: '10/25/23', systolic: 140, diastolic: 90 }
+        ],
+        weight: [
+          { date: '11/01/23', value: 245 },
+          { date: '10/15/23', value: 248 }
+        ],
+        heartRate: [
+          { date: '11/01/23', value: 80 },
+          { date: '10/25/23', value: 82 }
+        ]
+      },
+      notes: [],
+      appointments: [],
+      tasks: [],
+      goals: []
     }
   ]);
   

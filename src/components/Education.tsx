@@ -217,266 +217,266 @@ const Education: React.FC<EducationProps> = ({ patient }) => {
   return (
     <div className="flex-1 flex flex-col w-full bg-gray-50">
       {/* Main Content */}
-      <main className="flex-1 p-4">
-        <div className="flex justify-between items-center mb-4">
+      <main className="flex-1 overflow-y-auto">
+        <div className="space-y-4 px-2 pt-2">
           <div>
-            <h1 className="text-lg font-medium text-gray-900">Lessons & Exercise</h1>
+            <h2 className="text-lg font-medium text-gray-900">Lessons & Exercise</h2>
             <p className="text-gray-600">24-Week Cardiac Wellness Program</p>
           </div>
-        </div>
 
-        <div className="space-y-8">
-          {programWeeks.map((week) => (
-            <div key={week.week} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-semibold flex items-center">
-                    Week {week.week}
-                  </h3>
-                  <p className="text-gray-600 mt-1">{week.title}</p>
-                  <p className="text-sm text-gray-500 mt-1">{week.description}</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => {
-                      setSelectedWeek(week.week);
-                      setIsAddingLesson(true);
-                    }}
-                    className="flex items-center px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Item
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {week.lessons.map((lesson) => (
-                  <div 
-                    key={lesson.id} 
-                    className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setSelectedLesson(lesson);
-                      setShowLessonDetails(true);
-                    }}
-                  >
-                    <div className="flex-shrink-0 mr-4">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        lesson.type === 'video' ? 'bg-blue-100' :
-                        lesson.type === 'exercise' ? 'bg-purple-100' : 'bg-green-100'
-                      }`}>
-                        {getLessonTypeIcon(lesson.type)}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center mb-1">
-                        <span className="text-sm font-medium text-gray-500 mr-2">{lesson.category}</span>
-                        <span className="text-sm text-gray-400">•</span>
-                        <span className="text-sm text-gray-500 ml-2">{lesson.duration}</span>
-                      </div>
-                      <h4 className="text-lg font-medium text-gray-900">{lesson.title}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{lesson.description}</p>
-                    </div>
-                    <div className="ml-4 flex items-center space-x-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lesson.status)}`}>
-                        {lesson.status.replace('_', ' ')}
-                      </span>
-                    </div>
+          <div className="space-y-3">
+            {programWeeks.map((week) => (
+              <div key={week.week} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-xl font-semibold flex items-center">
+                      Week {week.week}
+                    </h3>
+                    <p className="text-gray-600 mt-1">{week.title}</p>
+                    <p className="text-sm text-gray-500 mt-1">{week.description}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Add Lesson Modal */}
-        {isAddingLesson && selectedWeek && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold">Add Lesson to Week {selectedWeek}</h3>
-                  <button
-                    onClick={() => {
-                      setIsAddingLesson(false);
-                      setSelectedWeek(null);
-                      setLessonSearchQuery('');
-                    }}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="h-6 w-6" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <div className="mb-4">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search lessons..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={lessonSearchQuery}
-                      onChange={(e) => setLessonSearchQuery(e.target.value)}
-                    />
-                    <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => {
+                        setSelectedWeek(week.week);
+                        setIsAddingLesson(true);
+                      }}
+                      className="flex items-center px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Item
+                    </button>
                   </div>
                 </div>
 
-                <div className="space-y-4 max-h-[400px] overflow-y-auto">
-                  {filteredLibraryLessons.map((lesson) => (
-                    <div key={lesson.id} className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100">
+                <div className="space-y-4">
+                  {week.lessons.map((lesson) => (
+                    <div 
+                      key={lesson.id} 
+                      className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedLesson(lesson);
+                        setShowLessonDetails(true);
+                      }}
+                    >
                       <div className="flex-shrink-0 mr-4">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                           lesson.type === 'video' ? 'bg-blue-100' :
                           lesson.type === 'exercise' ? 'bg-purple-100' : 'bg-green-100'
                         }`}>
                           {getLessonTypeIcon(lesson.type)}
                         </div>
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center mb-1">
-                          <span className="text-sm font-medium text-gray-500">{lesson.category}</span>
-                          <span className="mx-2 text-gray-300">•</span>
-                          <span className="text-sm text-gray-500">{lesson.duration}</span>
+                          <span className="text-sm font-medium text-gray-500 mr-2">{lesson.category}</span>
+                          <span className="text-sm text-gray-400">•</span>
+                          <span className="text-sm text-gray-500 ml-2">{lesson.duration}</span>
                         </div>
-                        <h4 className="font-medium text-gray-900">{lesson.title}</h4>
+                        <h4 className="text-lg font-medium text-gray-900">{lesson.title}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{lesson.description}</p>
                       </div>
-                      <button className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center">
-                        Add
-                        <ArrowRight className="h-4 w-4 ml-1" />
-                      </button>
+                      <div className="ml-4 flex items-center space-x-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lesson.status)}`}>
+                          {lesson.status.replace('_', ' ')}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
+            ))}
           </div>
-        )}
 
-        {/* Lesson Details Modal */}
-        {showLessonDetails && selectedLesson && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${
-                      selectedLesson.type === 'video' ? 'bg-blue-100' :
-                      selectedLesson.type === 'exercise' ? 'bg-purple-100' : 'bg-green-100'
-                    }`}>
-                      {getLessonTypeIcon(selectedLesson.type)}
-                    </div>
-                    <h3 className="text-xl font-semibold">{selectedLesson.title}</h3>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setShowLessonDetails(false);
-                      setSelectedLesson(null);
-                    }}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="h-6 w-6" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Category</h4>
-                    <p className="text-gray-900">{selectedLesson.category}</p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
-                    <p className="text-gray-900">{selectedLesson.description}</p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Duration</h4>
-                    <p className="text-gray-900">{selectedLesson.duration}</p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">Status</h4>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedLesson.status)}`}>
-                      {selectedLesson.status.replace('_', ' ')}
-                    </span>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-sm font-medium text-gray-500">URL</h4>
-                      {!isEditingUrl ? (
-                        <button
-                          onClick={handleStartEditingUrl}
-                          className="text-blue-600 hover:text-blue-700 flex items-center text-sm"
-                        >
-                          <Pencil className="h-3 w-3 mr-1" />
-                          Edit URL
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={handleSaveUrl}
-                            className="text-green-600 hover:text-green-700 flex items-center text-sm"
-                          >
-                            <Save className="h-3 w-3 mr-1" />
-                            Save
-                          </button>
-                          <button
-                            onClick={handleCancelUrlEdit}
-                            className="text-gray-500 hover:text-gray-600 flex items-center text-sm"
-                          >
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-2 p-3 bg-gray-50 rounded-lg break-all">
-                      {!isEditingUrl ? (
-                        <a 
-                          href={`https://www.healthwise.net/motiv/Content/StdDocument.aspx?DOCHWID=${selectedLesson.id}`}
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-700 flex items-center gap-2 font-mono text-sm"
-                        >
-                          @https://www.healthwise.net/motiv/Content/StdDocument.aspx?DOCHWID={selectedLesson.id}
-                          <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                        </a>
-                      ) : (
-                        <div className="flex flex-col gap-2">
-                          <input
-                            type="text"
-                            value={editedUrl}
-                            onChange={(e) => setEditedUrl(e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter URL..."
-                          />
-                          <p className="text-xs text-gray-500">
-                            Enter the full URL including the @https:// prefix
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-4 mt-6 border-t border-gray-200">
+          {/* Add Lesson Modal */}
+          {isAddingLesson && selectedWeek && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold">Add Lesson to Week {selectedWeek}</h3>
                     <button
-                      onClick={() => handleDeleteLesson(selectedWeek ? selectedWeek - 1 : 0, selectedLesson.id)}
-                      className="flex items-center text-red-600 hover:text-red-700"
+                      onClick={() => {
+                        setIsAddingLesson(false);
+                        setSelectedWeek(null);
+                        setLessonSearchQuery('');
+                      }}
+                      className="text-gray-400 hover:text-gray-600"
                     >
-                      <Trash2 className="h-5 w-5 mr-2" />
-                      Delete {selectedLesson.type === 'exercise' ? 'Exercise' : 'Lesson'}
+                      <X className="h-6 w-6" />
                     </button>
                   </div>
                 </div>
+                
+                <div className="p-6">
+                  <div className="mb-4">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search lessons..."
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={lessonSearchQuery}
+                        onChange={(e) => setLessonSearchQuery(e.target.value)}
+                      />
+                      <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                    {filteredLibraryLessons.map((lesson) => (
+                      <div key={lesson.id} className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100">
+                        <div className="flex-shrink-0 mr-4">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                            lesson.type === 'video' ? 'bg-blue-100' :
+                            lesson.type === 'exercise' ? 'bg-purple-100' : 'bg-green-100'
+                          }`}>
+                            {getLessonTypeIcon(lesson.type)}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center mb-1">
+                            <span className="text-sm font-medium text-gray-500">{lesson.category}</span>
+                            <span className="mx-2 text-gray-300">•</span>
+                            <span className="text-sm text-gray-500">{lesson.duration}</span>
+                          </div>
+                          <h4 className="font-medium text-gray-900">{lesson.title}</h4>
+                        </div>
+                        <button className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center">
+                          Add
+                          <ArrowRight className="h-4 w-4 ml-1" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Lesson Details Modal */}
+          {showLessonDetails && selectedLesson && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${
+                        selectedLesson.type === 'video' ? 'bg-blue-100' :
+                        selectedLesson.type === 'exercise' ? 'bg-purple-100' : 'bg-green-100'
+                      }`}>
+                        {getLessonTypeIcon(selectedLesson.type)}
+                      </div>
+                      <h3 className="text-xl font-semibold">{selectedLesson.title}</h3>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowLessonDetails(false);
+                        setSelectedLesson(null);
+                      }}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="p-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Category</h4>
+                      <p className="text-gray-900">{selectedLesson.category}</p>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
+                      <p className="text-gray-900">{selectedLesson.description}</p>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Duration</h4>
+                      <p className="text-gray-900">{selectedLesson.duration}</p>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Status</h4>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedLesson.status)}`}>
+                        {selectedLesson.status.replace('_', ' ')}
+                      </span>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="text-sm font-medium text-gray-500">URL</h4>
+                        {!isEditingUrl ? (
+                          <button
+                            onClick={handleStartEditingUrl}
+                            className="text-blue-600 hover:text-blue-700 flex items-center text-sm"
+                          >
+                            <Pencil className="h-3 w-3 mr-1" />
+                            Edit URL
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={handleSaveUrl}
+                              className="text-green-600 hover:text-green-700 flex items-center text-sm"
+                            >
+                              <Save className="h-3 w-3 mr-1" />
+                              Save
+                            </button>
+                            <button
+                              onClick={handleCancelUrlEdit}
+                              className="text-gray-500 hover:text-gray-600 flex items-center text-sm"
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-2 p-3 bg-gray-50 rounded-lg break-all">
+                        {!isEditingUrl ? (
+                          <a 
+                            href={`https://www.healthwise.net/motiv/Content/StdDocument.aspx?DOCHWID=${selectedLesson.id}`}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700 flex items-center gap-2 font-mono text-sm"
+                          >
+                            @https://www.healthwise.net/motiv/Content/StdDocument.aspx?DOCHWID={selectedLesson.id}
+                            <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                          </a>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <input
+                              type="text"
+                              value={editedUrl}
+                              onChange={(e) => setEditedUrl(e.target.value)}
+                              className="w-full p-2 border border-gray-300 rounded font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Enter URL..."
+                            />
+                            <p className="text-xs text-gray-500">
+                              Enter the full URL including the @https:// prefix
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-4 mt-6 border-t border-gray-200">
+                      <button
+                        onClick={() => handleDeleteLesson(selectedWeek ? selectedWeek - 1 : 0, selectedLesson.id)}
+                        className="flex items-center text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-5 w-5 mr-2" />
+                        Delete {selectedLesson.type === 'exercise' ? 'Exercise' : 'Lesson'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

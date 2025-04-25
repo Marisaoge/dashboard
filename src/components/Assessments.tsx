@@ -1,407 +1,321 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
-  Bell,
-  MoreHorizontal,
+  Plus,
   ChevronDown,
-  X,
-  Edit2,
-  Check
+  ChevronRight,
+  FileText,
+  Send,
+  Clock,
+  CheckCircle2,
+  ChevronUp
 } from 'lucide-react';
-import { generateAssessmentPDF } from '../utils/pdfGenerator';
+import SendFormModal from './SendFormModal';
+import AssignProgramModal from './AssignProgramModal';
 
 interface Question {
   id: number;
   text: string;
-  answer: string;
-  score: number;
+  answer?: string;
+  score?: number;
 }
 
-interface Assessment {
+interface ProgramForm {
   id: string;
   title: string;
-  createdBy: string;
-  dateCompleted: string;
-  type: string;
-  category: string;
-  date: string;
-  questions: Question[];
+  status: 'pending' | 'completed';
+  assignedDate: string;
+  completedDate?: string;
+  responses?: Question[];
+}
+
+interface FormProgram {
+  id: string;
+  name: string;
+  assignedDate: string;
+  status: 'active' | 'completed' | 'archived';
+  forms: ProgramForm[];
 }
 
 interface AssessmentsProps {
   patient: {
     id: string;
     name: string;
-    // Add other patient properties as needed
   };
 }
 
 const Assessments: React.FC<AssessmentsProps> = ({ patient }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
-  const [editingQuestion, setEditingQuestion] = useState<{ id: number, answer: string } | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState<FormProgram | null>(null);
+  const [selectedForm, setSelectedForm] = useState<ProgramForm | null>(null);
+  const [showSendFormModal, setShowSendFormModal] = useState(false);
+  const [showAssignProgramModal, setShowAssignProgramModal] = useState(false);
 
-  const assessments: Assessment[] = [
+  // Sample data - would come from API
+  const programs: FormProgram[] = [
     {
       id: '1',
-      title: 'Assessment Form 2 Final',
-      date: '10/22/2024',
-      type: 'RS',
-      category: 'Intake Form',
-      createdBy: 'Dr. Smith',
-      dateCompleted: '10/22/2024',
-      questions: [
+      name: 'Motiv Program Template - LIVE (new pts as of 7/16/2024)',
+      assignedDate: '07/16/2024',
+      status: 'active',
+      forms: [
         {
-          id: 1,
-          text: 'How would you rate your overall health?',
-          answer: 'Good',
-          score: 3
+          id: '1',
+          title: 'Initial Health Assessment',
+          status: 'completed',
+          assignedDate: '07/16/2024',
+          completedDate: '07/17/2024',
+          responses: [
+            {
+              id: 1,
+              text: 'How would you rate your overall health?',
+              answer: 'Good',
+              score: 3
+            },
+            {
+              id: 2,
+              text: 'Do you experience any chronic pain?',
+              answer: 'Yes - Moderate',
+              score: 2
+            }
+          ]
         },
         {
-          id: 2,
-          text: 'Do you experience any chronic pain?',
-          answer: 'Yes - Moderate',
-          score: 2
-        },
-        {
-          id: 3,
-          text: 'How often do you exercise per week?',
-          answer: '2-3 times',
-          score: 2
+          id: '2',
+          title: 'PHQ-9 Depression Screening',
+          status: 'pending',
+          assignedDate: '07/16/2024'
         }
       ]
     },
     {
       id: '2',
-      title: 'Duke Activity Status Index',
-      date: '10/22/2024',
-      type: 'RS',
-      category: 'Intake Form',
-      createdBy: 'Joe Smith',
-      dateCompleted: '10/22/2024',
-      questions: [
+      name: 'Initial Assessment Program',
+      assignedDate: '01/15/2024',
+      status: 'completed',
+      forms: [
         {
-          id: 1,
-          text: 'Can you take care of yourself (eating, dressing, bathing, or using the toilet)?',
-          answer: 'Yes',
-          score: 2.75
-        },
-        {
-          id: 2,
-          text: 'Can you walk indoors such as around your house?',
-          answer: 'Yes',
-          score: 1.75
-        },
-        {
-          id: 3,
-          text: 'Can you walk a block or two on level ground?',
-          answer: 'Yes',
-          score: 2.75
-        }
-      ]
-    },
-    {
-      id: '3',
-      title: 'Net Promoter Score (NPS)',
-      date: '10/22/2024',
-      type: 'RS',
-      category: 'Intake Form',
-      createdBy: 'Hannah Wright',
-      dateCompleted: '10/22/2024',
-      questions: [
-        {
-          id: 1,
-          text: 'How likely are you to recommend our service to others?',
-          answer: '9',
-          score: 9
-        },
-        {
-          id: 2,
-          text: 'What is the primary reason for your score?',
-          answer: 'Great customer service and helpful staff',
-          score: 0
-        }
-      ]
-    },
-    {
-      id: '4',
-      title: 'General Anxiety Disorder',
-      date: '10/22/2024',
-      type: 'RS',
-      category: 'Intake Form',
-      createdBy: 'Dr. Johnson',
-      dateCompleted: '10/22/2024',
-      questions: [
-        {
-          id: 1,
-          text: 'Feeling nervous, anxious, or on edge',
-          answer: 'Several days',
-          score: 1
-        },
-        {
-          id: 2,
-          text: 'Not being able to stop or control worrying',
-          answer: 'Not at all',
-          score: 0
-        },
-        {
-          id: 3,
-          text: 'Trouble relaxing',
-          answer: 'Several days',
-          score: 1
+          id: '3',
+          title: 'Basic Health Questionnaire',
+          status: 'completed',
+          assignedDate: '01/15/2024',
+          completedDate: '01/16/2024'
         }
       ]
     }
   ];
 
-  const filteredAssessments = assessments.filter(assessment =>
-    assessment.title.toLowerCase().includes(searchQuery.toLowerCase())
+  // Find and set the active program by default
+  useEffect(() => {
+    const activeProgram = programs.find(p => p.status === 'active');
+    if (activeProgram) {
+      setSelectedProgram(activeProgram);
+    }
+  }, []);
+
+  const filteredPrograms = programs.map(program => ({
+    ...program,
+    forms: program.forms.filter(form =>
+      form.title.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })).filter(program => 
+    program.forms.length > 0 || program.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDeleteAssessment = () => {
-    if (selectedAssessment) {
-      // Filter out the deleted assessment
-      const updatedAssessments = assessments.filter(a => a.id !== selectedAssessment.id);
-      // Reset selected assessment
-      setSelectedAssessment(null);
-      setShowDeleteConfirm(false);
-      // Here you would typically make an API call to delete the assessment
-      console.log('Deleting assessment:', selectedAssessment.id);
-    }
+  const handleSendForm = (formId: string) => {
+    console.log('Sending form:', formId, 'to patient:', patient.id);
+    setShowSendFormModal(false);
   };
 
-  const handleSaveAnswer = (questionId: number, newAnswer: string) => {
-    if (selectedAssessment) {
-      const updatedAssessment = {
-        ...selectedAssessment,
-        questions: selectedAssessment.questions.map(q =>
-          q.id === questionId ? { ...q, answer: newAnswer } : q
-        )
-      };
-      setSelectedAssessment(updatedAssessment);
-      setEditingQuestion(null);
-      // Here you would typically make an API call to update the answer
-      console.log('Updating answer:', { questionId, newAnswer });
-    }
-  };
-
-  const handleDownloadPDF = (assessment: Assessment) => {
-    generateAssessmentPDF(
-      assessment.title,
-      assessment.createdBy,
-      assessment.dateCompleted,
-      assessment.questions.map(q => ({
-        id: q.id,
-        question: q.text,
-        answer: q.answer,
-        score: q.score
-      }))
-    );
+  const handleAssignProgram = (programId: string) => {
+    // Here you would typically make an API call to assign the program
+    console.log('Assigning program:', programId, 'to patient:', patient.id);
+    setShowAssignProgramModal(false);
   };
 
   return (
-    <div className="flex h-screen">
-      {/* Left Sidebar */}
-      <div className="w-80 border-r border-gray-200 bg-white overflow-y-auto">
-        <div className="p-4">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Completed Forms</h2>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search forms"
-              className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Search className="absolute left-2 top-2.5 h-5 w-5 text-gray-400" />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600"
+    <div className="h-full flex">
+      {/* Left Column */}
+      <div className="w-[320px] min-w-[320px] border-r border-gray-200 overflow-y-auto">
+        <div className="space-y-6 pr-6">
+          <div>
+            <h2 className="text-lg font-medium text-gray-900">Assessments</h2>
+            <div className="mt-4 flex items-center justify-between">
+              <div className="relative flex-1 max-w-[240px]">
+                <input
+                  type="text"
+                  placeholder="Search forms..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-4 py-2 pl-10 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+              <button
+                onClick={() => setShowAssignProgramModal(true)}
+                className="flex items-center justify-center p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                <X className="h-5 w-5" />
+                <Plus className="h-5 w-5" />
               </button>
-            )}
+            </div>
           </div>
-        </div>
 
-        <div className="divide-y divide-gray-200">
-          {filteredAssessments.map((assessment) => (
-            <div 
-              key={assessment.id}
-              className={`p-4 hover:bg-gray-50 cursor-pointer ${
-                selectedAssessment?.id === assessment.id ? 'bg-gray-50' : ''
-              }`}
-              onClick={() => setSelectedAssessment(assessment)}
-            >
-              <div className="flex items-start mb-1">
-                <div className="p-2 bg-blue-100 rounded">
-                  <svg className="h-5 w-5 text-blue-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M13 2v7h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <div className="ml-3 flex-1">
-                  <h3 className="text-sm font-medium text-gray-900">{assessment.title}</h3>
-                  <div className="flex items-center mt-1">
-                    <span className="text-xs text-gray-500">{assessment.date}</span>
-                    <span className="mx-1 text-gray-300">•</span>
-                    <span className="text-xs px-1.5 py-0.5 bg-gray-100 rounded">{assessment.type}</span>
-                    <span className="mx-1 text-gray-300">•</span>
-                    <span className="text-xs text-gray-500">{assessment.category}</span>
+          <div className="space-y-6">
+            {/* Programs List */}
+            <div>
+              <h3 className="mb-4 text-sm font-medium text-gray-700">Active Programs</h3>
+              <div className="space-y-4">
+                {filteredPrograms.map((program) => (
+                  <div
+                    key={program.id}
+                    className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-medium text-gray-900">{program.name}</h4>
+                        <div className="mt-1 flex items-center space-x-2">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${program.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                            {program.status === 'active' ? 'Active' : 'Completed'}
+                          </span>
+                          <span className="text-sm text-gray-500">Assigned {program.assignedDate}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSelectedProgram(selectedProgram?.id === program.id ? null : program)}
+                        className="text-gray-400 hover:text-gray-500"
+                      >
+                        {selectedProgram?.id === program.id ? (
+                          <ChevronUp className="h-5 w-5" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {selectedProgram?.id === program.id && (
+                      <div className="mt-4 space-y-4">
+                        {program.forms.map((form) => (
+                          <button
+                            key={form.id}
+                            onClick={() => setSelectedForm(form)}
+                            className="w-full bg-gray-50 rounded-lg p-3 border border-gray-200 hover:border-gray-300"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <FileText className="h-5 w-5 text-gray-400" />
+                                <div className="text-left">
+                                  <div className="text-sm font-medium text-gray-900">{form.title}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {form.status === 'completed' ? 'Completed' : 'Pending'}
+                                  </div>
+                                </div>
+                              </div>
+                              <ChevronRight className="h-5 w-5 text-gray-400" />
+                            </div>
+                          </button>
+                        ))}
+                        
+                        {program.status === 'active' && (
+                          <button
+                            onClick={() => setShowSendFormModal(true)}
+                            className="w-full flex items-center justify-center gap-2 p-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
+                          >
+                            <Send className="h-4 w-4" />
+                            <span>Send New Form</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
+                ))}
               </div>
             </div>
-          ))}
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      {selectedAssessment ? (
-        <div className="flex-1 bg-white overflow-y-auto">
-          <div className="border-b border-gray-200">
-            <div className="p-4 flex justify-between items-start">
-              <h1 className="text-lg font-medium text-gray-900">{selectedAssessment.title}</h1>
-              <div className="relative">
-                <button
-                  onClick={() => setShowMenu(!showMenu)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <MoreHorizontal className="h-5 w-5 text-gray-600" />
-                </button>
-                
-                {showMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        setEditingQuestion({ id: selectedAssessment.questions[0].id, answer: selectedAssessment.questions[0].answer });
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        handleDownloadPDF(selectedAssessment);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Download as PDF
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        setShowDeleteConfirm(true);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                    >
-                      Delete
-                    </button>
+      {/* Right Column - Form Details */}
+      <div className="flex-1 overflow-y-auto bg-gray-50 pl-6 py-6">
+        {selectedForm ? (
+          <div className="max-w-[1800px]">
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              {/* Form Header */}
+              <div className="px-12 py-8 border-b border-gray-200">
+                <h1 className="text-xl font-medium text-gray-900 mb-3">{selectedForm.title}</h1>
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4" />
+                    <span>Assigned {selectedForm.assignedDate}</span>
                   </div>
-                )}
-              </div>
-            </div>
-            <div className="px-4 pb-4">
-              <p className="text-sm text-gray-600">
-                Created by: {selectedAssessment.createdBy} 
-                <span className="mx-2">•</span>
-                Date completed: {selectedAssessment.dateCompleted}
-              </p>
-            </div>
-          </div>
-
-          <div className="p-6">
-            {selectedAssessment.questions.map((question, index) => (
-              <div 
-                key={question.id} 
-                className="mb-6 group/item hover:bg-gray-50 p-3 rounded-lg transition-colors"
-              >
-                <div className="flex items-start">
-                  <span className="text-gray-700 mr-2">{index + 1}.</span>
-                  <div className="flex-1">
-                    <p className="text-gray-700 mb-2">{question.text}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        {editingQuestion?.id === question.id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={editingQuestion.answer}
-                              onChange={(e) => setEditingQuestion({ id: question.id, answer: e.target.value })}
-                              className="border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => handleSaveAnswer(question.id, editingQuestion.answer)}
-                              className="text-green-600 hover:text-green-700 p-1"
-                            >
-                              <Check className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => setEditingQuestion(null)}
-                              className="text-red-600 hover:text-red-700 p-1"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-900 font-medium">{question.answer}</span>
-                            {question.score > 0 && (
-                              <span className="ml-2 text-gray-500">[{question.score}]</span>
-                            )}
-                            <button
-                              onClick={() => setEditingQuestion({ id: question.id, answer: question.answer })}
-                              className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                  {selectedForm.completedDate && (
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span>Completed {selectedForm.completedDate}</span>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 bg-gray-50 flex items-center justify-center">
-          <p className="text-gray-500">Select a form to view its details</p>
-        </div>
-      )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Delete Assessment</h2>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this assessment? This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteAssessment}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Delete
-              </button>
+              {/* Form Content */}
+              {selectedForm.status === 'completed' && selectedForm.responses ? (
+                <div className="px-12 py-8">
+                  <div className="space-y-8">
+                    {selectedForm.responses.map((question, index) => (
+                      <div key={question.id} className="border-b border-gray-100 last:border-0 pb-8 last:pb-0">
+                        <div className="flex gap-3">
+                          <span className="text-gray-400 font-medium">{index + 1}</span>
+                          <div className="flex-1">
+                            <p className="text-gray-900 font-medium mb-3">{question.text}</p>
+                            <div className="flex items-center gap-3">
+                              <span className="text-gray-600">{question.answer}</span>
+                              {question.score !== undefined && (
+                                <span className="text-sm px-2 py-1 bg-gray-100 rounded text-gray-600">
+                                  Score: {question.score}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="px-12 py-12 text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-4">
+                    <Clock className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <p className="text-gray-600 font-medium">This form is pending completion</p>
+                  <p className="text-sm text-gray-500 mt-1">Check back later for responses</p>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-4">
+                <FileText className="h-6 w-6 text-gray-400" />
+              </div>
+              <p className="text-gray-600 font-medium">Select a form to view responses</p>
+              <p className="text-sm text-gray-500 mt-1">Choose a form from the list to see its details</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      <SendFormModal
+        isOpen={showSendFormModal}
+        onClose={() => setShowSendFormModal(false)}
+        onSend={handleSendForm}
+      />
+
+      <AssignProgramModal
+        isOpen={showAssignProgramModal}
+        onClose={() => setShowAssignProgramModal(false)}
+        onAssign={handleAssignProgram}
+      />
     </div>
   );
 };
