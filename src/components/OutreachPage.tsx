@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Bell, 
@@ -20,8 +20,13 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  HelpCircle
+  HelpCircle,
+  Filter,
+  Settings,
+  X
 } from 'lucide-react';
+import NewTextMessageModal from './NewTextMessageModal';
+import { useUnreadCount } from '../contexts/UnreadCountContext';
 
 interface Conversation {
   id: string;
@@ -29,6 +34,7 @@ interface Conversation {
   initial: string;
   lastMessage: string;
   time: string;
+  unread: boolean;
 }
 
 interface Message {
@@ -48,21 +54,12 @@ interface EmailTemplate {
   description: string;
 }
 
+interface AutoResponseSettings {
+  enabled: boolean;
+  message: string;
+}
+
 const OutreachPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'text' | 'email'>('text');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [messageInput, setMessageInput] = useState('');
-  const [selectedConversation, setSelectedConversation] = useState<string>('janet');
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('client-invite');
-  const [emailSubject, setEmailSubject] = useState('Please ignore this email');
-  const [emailTo, setEmailTo] = useState('');
-  const [emailContent, setEmailContent] = useState(
-    'Apologies this email was sent to you by accident, please don\'t click on the "Accept Invite" button in this email.\n\n' +
-    'Look out for the correct email: You should soon receive a separate email from hello@withmotiv.com entitled "Welcome to Endeavor Health\'s Virtual Cardiac Wellness, powered by Motiv! Create your account now." Please check your main inbox and your Spam folder just in case.\n\n' +
-    'Next Steps: Please follow the instructions in the correct email to create and log into your Motiv Account.\n\n' +
-    'If you have any questions or need further assistance, please contact us at 1-855-542-1232 or hello@withmotiv.com.'
-  );
-  
   // Sample conversations data
   const conversations: Conversation[] = [
     {
@@ -70,79 +67,151 @@ const OutreachPage: React.FC = () => {
       name: 'Joe Smith',
       initial: 'J',
       lastMessage: 'Hi Joseph. Thank you for your...',
-      time: '50m'
+      time: '50m',
+      unread: true
     },
     {
       id: 'janet',
       name: 'Janet Twist',
       initial: 'J',
       lastMessage: 'Thank you for your help! Will s...',
-      time: '4d'
+      time: '4d',
+      unread: false
     },
     {
-      id: 'janet2',
-      name: 'Janet Twist',
-      initial: 'J',
-      lastMessage: 'I am also including in that sa...',
-      time: '4d'
+      id: 'sarah',
+      name: 'Sarah Johnson',
+      initial: 'S',
+      lastMessage: 'I completed my daily check-in...',
+      time: '2h',
+      unread: true
     },
     {
-      id: 'janet3',
-      name: 'Janet Twist',
-      initial: 'K',
-      lastMessage: 'Thank you!',
-      time: '4d'
-    },
-    {
-      id: 'janet4',
-      name: 'Janet Twist',
+      id: 'michael',
+      name: 'Michael Chen',
       initial: 'M',
-      lastMessage: 'I am also including in that sa...',
-      time: '4d'
+      lastMessage: 'Yes, I received the new device...',
+      time: '1h',
+      unread: false
     },
     {
-      id: 'janet5',
-      name: 'Janet Twist',
+      id: 'emma',
+      name: 'Emma Williams',
       initial: 'E',
-      lastMessage: 'I am also including in that sa...',
-      time: '4d'
+      lastMessage: 'My blood pressure today was...',
+      time: '3h',
+      unread: true
     },
     {
-      id: 'janet6',
-      name: 'Janet Twist',
-      initial: 'E',
-      lastMessage: 'I am also including in that sa...',
-      time: '4d'
+      id: 'david',
+      name: 'David Martinez',
+      initial: 'D',
+      lastMessage: 'The new medication schedule is...',
+      time: '5h',
+      unread: false
+    },
+    {
+      id: 'lisa',
+      name: 'Lisa Anderson',
+      initial: 'L',
+      lastMessage: 'Thanks for checking in on me...',
+      time: '1d',
+      unread: false
+    },
+    {
+      id: 'robert',
+      name: 'Robert Taylor',
+      initial: 'R',
+      lastMessage: 'I have a question about the...',
+      time: '2d',
+      unread: true
+    },
+    {
+      id: 'patricia',
+      name: 'Patricia Garcia',
+      initial: 'P',
+      lastMessage: 'My symptoms have improved since...',
+      time: '3d',
+      unread: false
+    },
+    {
+      id: 'james',
+      name: 'James Wilson',
+      initial: 'J',
+      lastMessage: 'Can we reschedule my appointment...',
+      time: '5d',
+      unread: false
+    },
+    {
+      id: 'maria',
+      name: 'Maria Rodriguez',
+      initial: 'M',
+      lastMessage: 'The exercise program is going well...',
+      time: '1w',
+      unread: false
+    },
+    {
+      id: 'thomas',
+      name: 'Thomas Lee',
+      initial: 'T',
+      lastMessage: 'I logged all my meals for today...',
+      time: '1w',
+      unread: false
     }
   ];
 
-  // Sample messages for the selected conversation
-  const messages: Record<string, Message[]> = {
+  // Sample messages for conversations
+  const initialMessages: Record<string, Message[]> = {
     janet: [
       {
         id: '1',
-        sender: 'user',
-        initial: 'M',
-        name: 'Marisa Oge',
-        content: 'I am also including in that same box a return label to return the old blood pressure device at your earliest convenience. Thanks again!',
+        sender: 'patient',
+        initial: 'J',
+        name: 'Janet Twist',
+        content: 'Hello, I need to ask about my blood pressure readings from yesterday.',
         timestamp: '3:45 PM'
       },
       {
         id: '2',
-        sender: 'patient',
-        initial: 'J',
-        name: 'Janet Twist',
-        content: 'Ok thanks',
-        timestamp: '4:02 PM'
-      },
-      {
-        id: '3',
         sender: 'system',
         initial: 'M',
         name: 'Motiv',
-        content: 'Thank you for your response. This is an automated message from Motiv. If this is a medical emergency, please contact 911.\nIf you have any questions, please message your Coach using the chat feature in the Motiv app or click here: www.withmotiv.com. Chat messages sent outside the normal business hours of 8am-4pm EST will be responded to within 1 business day, or the next business day if sent on the weekend.\nIf you are interested in enrolling with Motiv but haven\'t yet, please call us at: 1-855-542-1232.',
-        timestamp: '3d ago',
+        content: 'Thank you for your message. This is an automated reply from Motiv. For emergencies, call 911. Messages sent outside 8 AM–4 PM EST will be answered within 1 business day.',
+        timestamp: '3:45 PM',
         isAutomated: true
+      },
+      {
+        id: '3',
+        sender: 'user',
+        initial: 'M',
+        name: 'Motiv',
+        content: 'Hi Janet, I can help you with that. Your readings from yesterday were within the normal range. Is there something specific you\'re concerned about?',
+        timestamp: '3:50 PM'
+      },
+      {
+        id: '4',
+        sender: 'patient',
+        initial: 'J',
+        name: 'Janet Twist',
+        content: 'Yes, I noticed the systolic number was a bit higher than usual.',
+        timestamp: '4:02 PM'
+      },
+      {
+        id: '5',
+        sender: 'system',
+        initial: 'M',
+        name: 'Motiv',
+        content: 'Thank you for your message. This is an automated reply from Motiv. For emergencies, call 911. Messages sent outside 8 AM–4 PM EST will be answered within 1 business day.',
+        timestamp: '4:02 PM',
+        isAutomated: true
+      },
+      {
+        id: '6',
+        sender: 'user',
+        initial: 'M',
+        name: 'Motiv',
+        content: 'A slight variation is normal throughout the day. As long as it stays below 140, there\'s no immediate concern. Keep monitoring and let me know if you see it go above that level.',
+        timestamp: '4:05 PM'
       }
     ],
     joe: [
@@ -158,13 +227,111 @@ const OutreachPage: React.FC = () => {
         id: '2',
         sender: 'user',
         initial: 'M',
-        name: 'Marisa Oge',
+        name: 'Motiv',
         content: 'Great! Let me know how your new device works out, and have a great weekend!',
         timestamp: '10:30 AM'
+      }
+    ],
+    sarah: [
+      {
+        id: '1',
+        sender: 'patient',
+        initial: 'S',
+        name: 'Sarah Johnson',
+        content: 'I completed my daily check-in and logged all my measurements.',
+        timestamp: '2:30 PM'
+      },
+      {
+        id: '2',
+        sender: 'user',
+        initial: 'M',
+        name: 'Motiv',
+        content: 'Excellent work, Sarah! Keep up the great progress. How are you feeling today?',
+        timestamp: '2:45 PM'
+      }
+    ],
+    michael: [
+      {
+        id: '1',
+        sender: 'user',
+        initial: 'M',
+        name: 'Motiv',
+        content: 'Hi Michael, did you receive your new monitoring device?',
+        timestamp: '11:30 AM'
+      },
+      {
+        id: '2',
+        sender: 'patient',
+        initial: 'M',
+        name: 'Michael Chen',
+        content: 'Yes, I received the new device. The setup instructions were very helpful.',
+        timestamp: '12:15 PM'
+      }
+    ],
+    emma: [
+      {
+        id: '1',
+        sender: 'patient',
+        initial: 'E',
+        name: 'Emma Williams',
+        content: 'My blood pressure reading today was 128/82.',
+        timestamp: '9:15 AM'
+      },
+      {
+        id: '2',
+        sender: 'user',
+        initial: 'M',
+        name: 'Motiv',
+        content: 'That\'s great Emma! Your readings are showing good improvement. Keep following your treatment plan.',
+        timestamp: '9:30 AM'
+      }
+    ],
+    david: [
+      {
+        id: '1',
+        sender: 'user',
+        initial: 'M',
+        name: 'Motiv',
+        content: 'I\'ve updated your medication schedule in the app. Please review it when you have a chance.',
+        timestamp: '1:20 PM'
+      },
+      {
+        id: '2',
+        sender: 'patient',
+        initial: 'D',
+        name: 'David Martinez',
+        content: 'Thank you, I\'ll check it right now.',
+        timestamp: '1:45 PM'
       }
     ]
   };
 
+  const [activeTab, setActiveTab] = useState<'text' | 'email'>('text');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [messageInput, setMessageInput] = useState('');
+  const [selectedConversation, setSelectedConversation] = useState<string>('janet');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('client-invite');
+  const [emailSubject, setEmailSubject] = useState('Please ignore this email');
+  const [emailTo, setEmailTo] = useState('');
+  const [emailContent, setEmailContent] = useState(
+    'Apologies this email was sent to you by accident, please don\'t click on the "Accept Invite" button in this email.\n\n' +
+    'Look out for the correct email: You should soon receive a separate email from hello@withmotiv.com entitled "Welcome to Endeavor Health\'s Virtual Cardiac Wellness, powered by Motiv! Create your account now." Please check your main inbox and your Spam folder just in case.\n\n' +
+    'Next Steps: Please follow the instructions in the correct email to create and log into your Motiv Account.\n\n' +
+    'If you have any questions or need further assistance, please contact us at 1-855-542-1232 or hello@withmotiv.com.'
+  );
+  const [showNewMessageModal, setShowNewMessageModal] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [filterType, setFilterType] = useState<'my-patients' | 'all-patients'>('my-patients');
+  const [conversationMessages, setConversationMessages] = useState<Record<string, Message[]>>(initialMessages);
+  const [conversationsState, setConversationsState] = useState<Conversation[]>(conversations);
+  const [showSettings, setShowSettings] = useState(false);
+  const [autoResponseSettings, setAutoResponseSettings] = useState<AutoResponseSettings>({
+    enabled: true,
+    message: 'Thank you for your message. This is an automated reply from Motiv. For emergencies, call 911. Messages sent outside 8 AM–4 PM EST will be answered within 1 business day.'
+  });
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const { updateOutreachUnreadCount } = useUnreadCount();
+  
   // Email templates
   const emailTemplates: EmailTemplate[] = [
     {
@@ -211,16 +378,54 @@ const OutreachPage: React.FC = () => {
     }
   ];
 
-  // Filter conversations based on search query
-  const filteredConversations = conversations.filter(conversation => 
-    conversation.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Calculate total unread count
+  const totalUnreadCount = conversationsState.reduce((sum, conversation) => 
+    sum + (conversation.unread ? 1 : 0), 0
   );
 
+  // Update unread count in context whenever it changes
+  useEffect(() => {
+    updateOutreachUnreadCount(totalUnreadCount);
+  }, [totalUnreadCount, updateOutreachUnreadCount]);
+
+  const handleConversationClick = (conversationId: string) => {
+    setSelectedConversation(conversationId);
+    // Mark conversation as read when clicked
+    setConversationsState(prev => 
+      prev.map(conv => 
+        conv.id === conversationId 
+          ? { ...conv, unread: false }
+          : conv
+      )
+    );
+  };
+
+  // Filter conversations based on search query and filter type
+  const filteredConversations = conversationsState.filter(conversation => {
+    const matchesSearch = conversation.name.toLowerCase().includes(searchQuery.toLowerCase());
+    if (filterType === 'my-patients') {
+      return matchesSearch && ['janet', 'joe'].includes(conversation.id);
+    }
+    return matchesSearch;
+  });
+
   const handleSendMessage = () => {
-    if (messageInput.trim() === '') return;
+    if (messageInput.trim() === '' || !selectedConversation) return;
     
-    // In a real app, you would send the message to an API
-    // and then update the UI after a successful response
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      sender: 'user',
+      initial: 'M',
+      name: 'Motiv',
+      content: messageInput,
+      timestamp: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    };
+
+    setConversationMessages(prev => ({
+      ...prev,
+      [selectedConversation]: [...(prev[selectedConversation] || []), newMessage]
+    }));
+    
     setMessageInput('');
   };
 
@@ -234,71 +439,149 @@ const OutreachPage: React.FC = () => {
     alert('Email sent successfully!');
   };
 
+  const handlePatientMessage = (conversationId: string, message: Message) => {
+    // Add the patient's message
+    setConversationMessages(prev => ({
+      ...prev,
+      [conversationId]: [...(prev[conversationId] || []), message]
+    }));
+
+    // If auto-response is enabled, add the automated response
+    if (autoResponseSettings.enabled) {
+      const autoResponse: Message = {
+        id: Date.now().toString(),
+        sender: 'system',
+        initial: 'M',
+        name: 'Motiv',
+        content: autoResponseSettings.message,
+        timestamp: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+        isAutomated: true
+      };
+
+      // Add the auto-response after a short delay to simulate system processing
+      setTimeout(() => {
+        setConversationMessages(prev => ({
+          ...prev,
+          [conversationId]: [...(prev[conversationId] || []), autoResponse]
+        }));
+      }, 1000);
+    }
+  };
+
+  const handleMarkAsUnread = () => {
+    if (selectedConversation) {
+      setConversationsState(prev => 
+        prev.map(conv => 
+          conv.id === selectedConversation 
+            ? { ...conv, unread: true }
+            : conv
+        )
+      );
+      setShowMoreOptions(false);
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col w-full">
-      <div className="flex flex-1 overflow-hidden">
+    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         {/* Left panel - Conversation list or Template list */}
-        <div className="w-96 border-r border-gray-200 bg-white flex flex-col h-full">
-          <div className="border-b border-gray-200">
+        <div className="w-96 border-r border-gray-200 bg-white flex flex-col min-h-0">
+          <div className="border-b border-gray-200 bg-white z-10">
             <div className="flex p-4">
+              <h2 className="text-lg font-medium text-gray-900">Text Messages</h2>
               <button
-                className={`px-6 py-2 text-sm font-medium ${
-                  activeTab === 'text'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setActiveTab('text')}
+                onClick={() => setShowSettings(true)}
+                className="ml-auto p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
               >
-                Text
-              </button>
-              <button
-                className={`px-6 py-2 text-sm font-medium ${
-                  activeTab === 'email'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setActiveTab('email')}
-              >
-                Email
+                <Settings className="h-5 w-5" />
               </button>
             </div>
           </div>
           
           {activeTab === 'text' ? (
             <>
-              {/* Search */}
-              <div className="p-4 border-b border-gray-200">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search by name"
-                    className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              {/* Search and filter */}
+              <div className="p-4 border-b border-gray-200 bg-white">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      placeholder="Search by name"
+                      className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                  </div>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                      className="flex items-center justify-center p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
+                    >
+                      <Filter className="h-5 w-5" />
+                    </button>
+                    {showFilterDropdown && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                        <button
+                          className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${filterType === 'my-patients' ? 'text-blue-600' : 'text-gray-700'}`}
+                          onClick={() => {
+                            setFilterType('my-patients');
+                            setShowFilterDropdown(false);
+                          }}
+                        >
+                          My Patients
+                        </button>
+                        <button
+                          className={`w-full text-left px-4 py-2 hover:bg-gray-50 ${filterType === 'all-patients' ? 'text-blue-600' : 'text-gray-700'}`}
+                          onClick={() => {
+                            setFilterType('all-patients');
+                            setShowFilterDropdown(false);
+                          }}
+                        >
+                          All Patients
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowNewMessageModal(true)}
+                    className="flex items-center justify-center p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
               
               {/* Conversation list */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto min-h-0">
                 {filteredConversations.map((conversation) => (
                   <button
                     key={conversation.id}
                     className={`w-full p-4 flex items-center border-b border-gray-100 hover:bg-gray-50 ${
                       selectedConversation === conversation.id ? 'bg-gray-100' : ''
                     }`}
-                    onClick={() => setSelectedConversation(conversation.id)}
+                    onClick={() => handleConversationClick(conversation.id)}
                   >
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium mr-3">
                       {conversation.initial}
                     </div>
                     <div className="flex-1 text-left">
-                      <div className="flex justify-between">
-                        <span className="font-medium">{conversation.name}</span>
-                        <span className="text-sm text-gray-500">{conversation.time}</span>
+                      <div className="flex justify-between items-center">
+                        <span className={`font-medium ${conversation.unread ? 'text-gray-900' : 'text-gray-700'}`}>
+                          {conversation.name}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {conversation.unread && (
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          )}
+                          <span className={`text-sm ${conversation.unread ? 'text-gray-900' : 'text-gray-500'}`}>
+                            {conversation.time}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-500 truncate">{conversation.lastMessage}</p>
+                      <p className={`text-sm truncate ${conversation.unread ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
+                        {conversation.lastMessage}
+                      </p>
                     </div>
                   </button>
                 ))}
@@ -335,12 +618,12 @@ const OutreachPage: React.FC = () => {
         </div>
         
         {/* Right panel - Messages or Email Template Editor */}
-        <div className="flex-1 flex flex-col bg-gray-50">
+        <div className="flex-1 flex flex-col bg-gray-50 h-full overflow-hidden">
           {activeTab === 'text' ? (
             selectedConversation ? (
               <>
                 {/* Conversation header */}
-                <div className="bg-white p-4 border-b border-gray-200 flex items-center justify-between">
+                <div className="bg-white p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 z-10">
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium mr-3">
                       {conversations.find(c => c.id === selectedConversation)?.initial || '?'}
@@ -356,42 +639,80 @@ const OutreachPage: React.FC = () => {
                     <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full">
                       <Info className="h-5 w-5" />
                     </button>
-                    <button className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full">
-                      <MoreHorizontal className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {messages[selectedConversation]?.map((message) => (
-                    <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      {message.sender !== 'user' && (
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium mr-2 flex-shrink-0">
-                          {message.initial}
-                        </div>
-                      )}
-                      <div className={`max-w-[75%] ${message.sender === 'user' ? 'bg-blue-600 text-white' : message.isAutomated ? 'bg-gray-100 border border-gray-200' : 'bg-white border border-gray-200'} rounded-lg p-3 shadow-sm`}>
-                        {message.sender !== 'user' && (
-                          <div className="font-medium text-sm mb-1">{message.name}</div>
-                        )}
-                        <div className="whitespace-pre-line">{message.content}</div>
-                        <div className={`text-xs mt-1 ${message.sender === 'user' ? 'text-blue-200' : 'text-gray-500'} text-right`}>
-                          {message.timestamp}
-                        </div>
-                      </div>
-                      {message.sender === 'user' && (
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium ml-2 flex-shrink-0">
-                          {message.initial}
+                    <div className="relative">
+                      <button 
+                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+                        onClick={() => setShowMoreOptions(!showMoreOptions)}
+                      >
+                        <MoreHorizontal className="h-5 w-5" />
+                      </button>
+                      {showMoreOptions && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                          <button
+                            className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700"
+                            onClick={handleMarkAsUnread}
+                          >
+                            Mark as Unread
+                          </button>
                         </div>
                       )}
                     </div>
-                  ))}
-                  
-                  {/* Date separator */}
-                  <div className="flex items-center justify-center my-4">
-                    <div className="bg-gray-200 text-gray-500 text-xs px-3 py-1 rounded-full">
-                      Tuesday, October 3, 2023
+                  </div>
+                </div>
+                
+                {/* Messages container */}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <div className="p-4 space-y-4">
+                    {conversationMessages[selectedConversation]?.map((message) => (
+                      <div key={message.id} className={`mb-4 flex ${message.sender === 'user' || message.sender === 'system' ? 'justify-end' : ''}`}>
+                        {message.sender === 'patient' && (
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium mr-2 flex-shrink-0">
+                            {message.initial}
+                          </div>
+                        )}
+                        <div className={`flex-1 max-w-[80%] ${message.sender === 'user' || message.sender === 'system' ? 'ml-auto' : ''}`}>
+                          <div className={`flex items-center mb-1 ${message.sender === 'user' || message.sender === 'system' ? 'justify-end' : ''}`}>
+                            <span className="text-sm font-medium mr-2">{message.name}</span>
+                            <span className="text-xs text-gray-500">{message.timestamp}</span>
+                          </div>
+                          <div className={`group relative p-3 rounded-lg ${
+                            message.sender === 'patient' 
+                              ? 'bg-white border border-gray-200' 
+                              : message.sender === 'system'
+                              ? 'bg-gray-100 border border-gray-200'
+                              : 'bg-blue-600 text-white'
+                          }`}>
+                            {message.sender !== 'user' && (
+                              <div className="font-medium text-sm mb-1 flex items-center">
+                                {message.name}
+                                {message.isAutomated && (
+                                  <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                                    Automated Response
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {message.sender === 'user' && (
+                              <div className="font-medium text-sm mb-1 text-blue-100">
+                                Motiv
+                              </div>
+                            )}
+                            <div className="whitespace-pre-line">{message.content}</div>
+                          </div>
+                        </div>
+                        {(message.sender === 'user' || message.sender === 'system') && (
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium ml-2 flex-shrink-0">
+                            {message.initial}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {/* Date separator */}
+                    <div className="flex items-center justify-center my-4">
+                      <div className="bg-gray-200 text-gray-500 text-xs px-3 py-1 rounded-full">
+                        Tuesday, October 3, 2023
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -405,6 +726,12 @@ const OutreachPage: React.FC = () => {
                       rows={2}
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
                     ></textarea>
                     <button 
                       className="absolute right-3 bottom-3 text-blue-600 hover:text-blue-800"
@@ -536,6 +863,78 @@ const OutreachPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <NewTextMessageModal
+        isOpen={showNewMessageModal}
+        onClose={() => setShowNewMessageModal(false)}
+        onSelectPatient={(patient) => {
+          // Set the selected conversation to show the patient's messages
+          setSelectedConversation(patient.id);
+          // Close the modal
+          setShowNewMessageModal(false);
+          // Clear any existing search query
+          setSearchQuery('');
+        }}
+      />
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-lg">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Text Message Settings</h3>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">Automated Response</label>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoResponseSettings.enabled}
+                      onChange={(e) => setAutoResponseSettings(prev => ({
+                        ...prev,
+                        enabled: e.target.checked
+                      }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+                <textarea
+                  value={autoResponseSettings.message}
+                  onChange={(e) => setAutoResponseSettings(prev => ({
+                    ...prev,
+                    message: e.target.value
+                  }))}
+                  rows={6}
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter automated response message..."
+                ></textarea>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
