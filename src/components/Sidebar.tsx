@@ -11,20 +11,20 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import { useUnreadCount } from '../contexts/UnreadCountContext';
 
 interface SidebarProps {}
 
 const Sidebar: React.FC<SidebarProps> = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { chatUnreadCount, outreachUnreadCount } = useUnreadCount();
 
   const menuItems = [
     { icon: Home, label: 'Home', path: '/', notification: 0 },
-    { icon: MessageSquare, label: 'Chat', path: '/chat/mary', notification: 4 },
+    { icon: MessageSquare, label: 'Chat', path: '/chat/mary', notification: chatUnreadCount },
     { icon: Calendar, label: 'Calendar', path: '/calendar', notification: 0 },
-    { icon: Package, label: 'Motiv Kits', path: '/kits', notification: 0 },
-    { icon: FileText, label: 'Forms', path: '/forms', notification: 0 },
-    { icon: Users, label: 'Outreach', path: '/outreach', notification: 0 },
+    { icon: Users, label: 'Outreach', path: '/outreach', notification: outreachUnreadCount },
     { icon: BarChart, label: 'Reports', path: '/reports', notification: 0 }
   ];
 

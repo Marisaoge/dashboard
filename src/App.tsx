@@ -10,23 +10,26 @@ import OutreachPage from './components/OutreachPage';
 import Reports from './components/Reports';
 import Points from './components/Points';
 import PasswordProtection from './components/PasswordProtection';
+import { UnreadCountProvider } from './contexts/UnreadCountContext';
 
 function App() {
   return (
     <BrowserRouter basename="/dashboard">
       <PasswordProtection password="Motiv1234!">
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
-            <Route path="chat/:patientId" element={<ChatPage />} />
-            <Route path="calendar" element={<CalendarPage />} />
-            <Route path="kits" element={<KitsPage />} />
-            <Route path="forms" element={<FormsPage />} />
-            <Route path="outreach" element={<OutreachPage />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="points" element={<Points />} />
-          </Route>
-        </Routes>
+        <UnreadCountProvider>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="chat/:patientId" element={<ChatPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="kits" element={<KitsPage />} />
+              <Route path="forms" element={<FormsPage />} />
+              <Route path="outreach" element={<OutreachPage />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="points" element={<Points />} />
+            </Route>
+          </Routes>
+        </UnreadCountProvider>
       </PasswordProtection>
     </BrowserRouter>
   );

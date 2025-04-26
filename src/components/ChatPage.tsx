@@ -46,6 +46,7 @@ import {
   MessageSquarePlus
 } from 'lucide-react';
 import Header from './Header';
+import { useUnreadCount } from '../contexts/UnreadCountContext';
 
 interface Message {
   id: string;
@@ -88,6 +89,7 @@ interface Patient {
 
 const ChatPage: React.FC = () => {
   const { patientId } = useParams<{ patientId: string }>();
+  const { updateChatUnreadCount } = useUnreadCount();
   
   const conversations: Conversation[] = [
     { id: "joe-smith", patientName: "Joe Smith", coachName: "Marisa Oge", initial: "JS", lastMessage: "Thanks for checking in!", time: "2:15 PM", unreadCount: 2, isRead: false },
@@ -414,6 +416,16 @@ const ChatPage: React.FC = () => {
       )
     );
   };
+
+  // Calculate total unread count
+  const totalUnreadCount = conversationsState.reduce((sum, conversation) => 
+    sum + (conversation.unreadCount || 0), 0
+  );
+
+  // Update unread count in context whenever it changes
+  useEffect(() => {
+    updateChatUnreadCount(totalUnreadCount);
+  }, [totalUnreadCount, updateChatUnreadCount]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -747,23 +759,23 @@ const ChatPage: React.FC = () => {
           <div className="flex-1 overflow-y-auto bg-gray-50 min-h-0">
             <div className="p-4">
               {selectedConversation && messages[selectedConversation]?.map(message => (
-                <div key={message.id} className={`mb-4 flex ${message.sender === 'patient' ? 'justify-end' : ''}`}>
-                  {message.sender !== 'patient' && (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium mr-2 flex-shrink-0">
+                <div key={message.id} className={`mb-4 flex ${message.sender === 'user' ? 'justify-end' : ''}`}>
+                  {message.sender === 'patient' && (
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium mr-2 flex-shrink-0">
                       {message.initial}
                     </div>
                   )}
-                  <div className={`flex-1 max-w-[80%] ${message.sender === 'patient' ? 'ml-auto' : ''}`}>
-                    <div className={`flex items-center mb-1 ${message.sender === 'patient' ? 'justify-end' : ''}`}>
+                  <div className={`flex-1 max-w-[80%] ${message.sender === 'user' ? 'ml-auto' : ''}`}>
+                    <div className={`flex items-center mb-1 ${message.sender === 'user' ? 'justify-end' : ''}`}>
                       <span className="text-sm font-medium mr-2">{message.name}</span>
                       <span className="text-xs text-gray-500">{message.timestamp}</span>
                     </div>
                     <div className={`group relative p-3 rounded-lg ${
                       message.sender === 'patient' 
-                        ? 'bg-blue-600 text-white' 
+                        ? 'bg-white border border-gray-200' 
                         : message.sender === 'system'
                         ? 'bg-gray-100 border border-gray-200'
-                        : 'bg-white border border-gray-200'
+                        : 'bg-blue-600 text-white'
                     }`}>
                       {message.isDeleted ? (
                         <div className="italic text-gray-500 text-sm">
@@ -787,8 +799,8 @@ const ChatPage: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  {message.sender === 'patient' && (
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium ml-2 flex-shrink-0">
+                  {message.sender === 'user' && (
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium ml-2 flex-shrink-0">
                       {message.initial}
                     </div>
                   )}
